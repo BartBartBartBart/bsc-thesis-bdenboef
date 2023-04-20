@@ -82,10 +82,10 @@ class NER_Model():
             "test-ner",
             save_strategy = "epoch",
             evaluation_strategy = "epoch", 
-            learning_rate=2e-5, 
+            learning_rate=9e-5, 
             per_device_train_batch_size=16, 
             per_device_eval_batch_size=16, 
-            num_train_epochs=20, 
+            num_train_epochs=40, 
             weight_decay=0.01, 
             warmup_steps = 10,
             load_best_model_at_end=True,
@@ -252,8 +252,8 @@ def compute_metrics(eval_preds):
        for prediction, label in zip(pred_logits, labels) 
     ] 
     
-    # for pred, true in zip(predictions, true_labels):
-    #     print(f"Prediction: {pred}, true label: {true}")
+    for pred, true in zip(predictions, true_labels):
+        print(f"Prediction: {pred}, true label: {true}")
         
     results = metric.compute(predictions=predictions, references=true_labels) 
     return { 
@@ -298,14 +298,8 @@ def count_labels(dataset):
         'B-OPERATION': 0,
         'I-OPERATION': 0
     }
-    # i = 0
     for labels in dataset["train"]["labels"]: 
-        # if i == 0:
-        #     print(labels)
         for label in labels:
-            # if i == 0:
-            #     i = 1
-            #     print(label)
             if label != -100:
                 label_counts[id2label[label]] += 1
     print(label_counts)
@@ -330,7 +324,6 @@ def train_ner_model(debug=False, count_labels_in_text=False):
     
     if count_labels_in_text:
         count_labels(ner_model.dataset)
-        return
     
     train_set, eval_set = clean_and_split_dataset(ner_model.dataset)
     
@@ -347,7 +340,7 @@ def train_ner_model(debug=False, count_labels_in_text=False):
     trainer.train()
     
 if __name__ == "__main__":
-    train_ner_model(count_labels_in_text=True)
+    train_ner_model(count_labels_in_text=False)
     
     
     
