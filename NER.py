@@ -89,7 +89,7 @@ class NER_Model():
             weight_decay=0.01, 
             warmup_steps = 10,
             load_best_model_at_end=True,
-            logging_steps=10
+            logging_steps=10,
         ) 
 
 def load_data():
@@ -185,7 +185,44 @@ def align_labels(texts):
         all_labels.append(data['labels'])
         all_ids.append([text_nr])
 
-    return {"tokens": all_tokens, "labels": all_labels, "id": all_ids, "old_tokens": texts["tokens"]}
+    return {
+        "tokens": all_tokens, 
+        "labels": all_labels, 
+        "id": all_ids, 
+        "old_tokens": texts["tokens"]
+    }
+    
+# Yield successive n-sized
+# chunks from l.
+def divide_chunks(l, n):
+     
+    # looping till length l
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+# Merge all texts and split into batches of 400 (leaves room for subtokens)
+def split_texts(dataset):
+    all_labels = []
+    all_tokens = []
+
+    for labels, tokens in zip(dataset['labels'],dataset['tokens']):
+        for label,token in zip(labels, tokens):
+            all_tokens.append(token)
+            all_labels.append(label) 
+    
+    # Divide into batches of size 400 (leaving room for subwords)
+    all_labels = divide_chunks(all_labels, 400)
+    all_tokens = divide_chunks(all_tokens, 400)
+    
+    all_labels = list(all_labels)
+    all_tokens = list(all_tokens)
+    
+    assert len(all_labels) == len(all_tokens)
+    
+    return {
+        "labels": all_labels, 
+        'tokens': all_tokens
+    } 
     
 def tokenize_and_align_labels(texts, label_all_tokens=True): 
     tokenized_inputs = tokenizer(texts["tokens"], truncation=True, is_split_into_words=True, padding="max_length")     
@@ -253,7 +290,8 @@ def compute_metrics(eval_preds):
     ] 
     
     for pred, true in zip(predictions, true_labels):
-        print(f"Prediction: {pred}, true label: {true}")
+        for pred_label, true_label in zip(pred,true):
+            print(f"({pred_label}, {true_label})")    
         
     results = metric.compute(predictions=predictions, references=true_labels) 
     return { 
@@ -264,22 +302,19 @@ def compute_metrics(eval_preds):
     }     
 
 def clean_and_split_dataset(dataset):
-    # Only take relevant columns
-    ner_dataset = dataset.remove_columns(['tokens','text','_input_hash', '_task_hash', '_is_binary', 'spans', '_view_id', 'relations', 'answer','_timestamp', 'old_tokens'])
-
     # create new train dataset
-    train_set = ner_dataset["train"].select(
+    train_set = dataset["train"].select(
         (
-            i for i in range(len(ner_dataset["train"])) 
-            if i not in [6,7,8]
+            i for i in range(len(dataset["train"])) 
+            if i not in [4,5,6]
         )
     )
 
     # create new eval dataset
-    eval_set = ner_dataset["train"].select(
+    eval_set = dataset["train"].select(
         (
-            i for i in range(len(ner_dataset["train"])) 
-            if i not in [0,1,2,3,4,5]
+            i for i in range(len(dataset["train"])) 
+            if i not in [0,1,2,3]
         )
     )
     return train_set, eval_set
@@ -313,10 +348,21 @@ def train_ner_model(debug=False, count_labels_in_text=False):
     # Add token labels
     ner_model.dataset = ner_model.dataset.map(add_token_labels, batched=True)
     ner_model.dataset = ner_model.dataset.map(add_span_ner_labels, batched=True)
-    
-    # Tokenize and align labels
+        
+    # Align labels
     ner_model.dataset = ner_model.dataset.map(align_labels, batched=True)
+    
+    # Remove some columns
+    ner_model.dataset = ner_model.dataset.remove_columns(['id', 'text','_input_hash', '_task_hash', '_is_binary', 'spans', '_view_id', 'relations', 'answer','_timestamp', 'old_tokens'])
+
+    # Split texts into batches of 400
+    ner_model.dataset = ner_model.dataset.map(split_texts, batched=True)
+       
+    # Tokenize and align labels    
     ner_model.dataset = ner_model.dataset.map(tokenize_and_align_labels, batched=True)
+    
+    # Remove some columns
+    ner_model.dataset = ner_model.dataset.remove_columns(['tokens'])
     
     if debug:
         # Check labels are properly aligned 
@@ -326,6 +372,10 @@ def train_ner_model(debug=False, count_labels_in_text=False):
         count_labels(ner_model.dataset)
     
     train_set, eval_set = clean_and_split_dataset(ner_model.dataset)
+    
+    # print(tokenizer.convert_ids_to_tokens(eval_set[0]["input_ids"]))
+    # print(eval_set[0]["labels"])
+    # print('EVAL:\n', eval_set[0])
     
     trainer = Trainer( 
         ner_model.model, 
@@ -341,8 +391,3 @@ def train_ner_model(debug=False, count_labels_in_text=False):
     
 if __name__ == "__main__":
     train_ner_model(count_labels_in_text=False)
-    
-    
-    
-    
-    
