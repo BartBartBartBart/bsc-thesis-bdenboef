@@ -5,6 +5,8 @@ from transformers import BertTokenizerFast
 from transformers import AutoTokenizer
 import numpy as np
 from transformers import DataCollatorWithPadding, AutoModelForTokenClassification, TrainingArguments, Trainer
+from torch.nn import CrossEntropyLoss
+import torch
 
 id2label = {
     0: 'O',
@@ -90,6 +92,7 @@ class NER_Model():
             warmup_steps = 10,
             load_best_model_at_end=True,
             logging_steps=10,
+            # compute_loss = CrossEntropyLoss(weight=weight_normalization(len(id2label), count_labels(self.dataset)))
         ) 
 
 def load_data():
@@ -338,6 +341,12 @@ def count_labels(dataset):
             if label != -100:
                 label_counts[id2label[label]] += 1
     print(label_counts)
+    return list(label_counts.values())
+
+def weight_normalization(n_classes, occurences_per_class):
+    weights_per_class = 1.0 / np.array(np.power(occurences_per_class, 1))
+    weights_per_class = weights_per_class / np.sum(weights_per_class) * n_classes
+    return torch.tensor(weights_per_class)
     
 def train_ner_model(debug=False, count_labels_in_text=False):
     ner_model = NER_Model()
@@ -369,13 +378,27 @@ def train_ner_model(debug=False, count_labels_in_text=False):
         check_tokens(ner_model.dataset)
     
     if count_labels_in_text:
-        count_labels(ner_model.dataset)
-    
+        label_counts = count_labels(ner_model.dataset)
+        
     train_set, eval_set = clean_and_split_dataset(ner_model.dataset)
     
-    # print(tokenizer.convert_ids_to_tokens(eval_set[0]["input_ids"]))
-    # print(eval_set[0]["labels"])
-    # print('EVAL:\n', eval_set[0])
+    
+    # LOSS_FN DOESNT WORK THIS WAY
+    # OVERWRITE TRAINER CLASS FOR CUSTOM LOSS
+    # args = TrainingArguments( 
+    #     "test-ner",
+    #     save_strategy = "epoch",
+    #     evaluation_strategy = "epoch", 
+    #     learning_rate=9e-5, 
+    #     per_device_train_batch_size=16, 
+    #     per_device_eval_batch_size=16, 
+    #     num_train_epochs=40, 
+    #     weight_decay=0.01, 
+    #     warmup_steps = 10,
+    #     load_best_model_at_end=True,
+    #     logging_steps=10,
+    #     loss_fn = CrossEntropyLoss(weight=weight_normalization(len(id2label), count_labels(ner_model.dataset)))
+    # ) 
     
     trainer = Trainer( 
         ner_model.model, 
