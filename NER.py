@@ -8,6 +8,7 @@ from transformers import DataCollatorWithPadding, AutoModelForTokenClassificatio
 from torch.nn import CrossEntropyLoss, functional
 import torch
 import evaluate
+import wandb
 
 id2label = {
     0: 'O',
@@ -41,7 +42,9 @@ label_list = ['O', 'B-CLASS', 'I-CLASS', 'B-ATTRIBUTE', 'I-ATTRIBUTE', 'B-ASSOCI
 metric = evaluate.load("seqeval")
 
 class NER_Model():
-    def __init__(self):
+    def __init__(self, learning_rate=9e-5, per_device_train_batch_size=16, per_device_eval_batch_size=16, 
+                num_train_epochs=40, weight_decay=0.01, warmup_steps = 10, load_best_model_at_end=True,
+                logging_steps=10):
         self.tokenizer = load_tokenizer()
         self.dataset = load_data()
         # Map id to label
@@ -85,14 +88,14 @@ class NER_Model():
             "test-ner",
             save_strategy = "epoch",
             evaluation_strategy = "epoch", 
-            learning_rate=9e-5, 
-            per_device_train_batch_size=16, 
-            per_device_eval_batch_size=16, 
-            num_train_epochs=40, 
-            weight_decay=0.01, 
-            warmup_steps = 10,
-            load_best_model_at_end=True,
-            logging_steps=10,
+            learning_rate=learning_rate, 
+            per_device_train_batch_size=per_device_train_batch_size, 
+            per_device_eval_batch_size=per_device_eval_batch_size, 
+            num_train_epochs=num_train_epochs, 
+            weight_decay=weight_decay, 
+            warmup_steps = warmup_steps,
+            load_best_model_at_end=load_best_model_at_end,
+            logging_steps=logging_steps,
         )
 
 class NER_Trainer(Trainer):
@@ -387,8 +390,12 @@ def weight_normalization(n_classes, occurences_per_class):
     weights_per_class = weights_per_class / np.sum(weights_per_class) * n_classes
     return torch.tensor(weights_per_class)
     
-def train_ner_model(debug=False, count_labels_in_text=False):
-    ner_model = NER_Model()
+def train_ner_model(debug=False, count_labels_in_text=False, learning_rate=9e-5, per_device_train_batch_size=16, 
+                    per_device_eval_batch_size=16, num_train_epochs=40, weight_decay=0.01, warmup_steps = 10, load_best_model_at_end=True,
+                    logging_steps=10):
+    ner_model = NER_Model(learning_rate, per_device_train_batch_size, per_device_eval_batch_size, 
+                    num_train_epochs, weight_decay, warmup_steps, load_best_model_at_end,
+                    logging_steps)
     
     # Remove rejected texts
     ner_model.dataset = remove_rejected_texts(ner_model.dataset)
@@ -435,4 +442,21 @@ def train_ner_model(debug=False, count_labels_in_text=False):
     trainer.train()
     
 if __name__ == "__main__":
-    train_ner_model(debug=False, count_labels_in_text=False)
+    with wandb.init(project='ner-bert'):
+        
+        config = wandb.config
+        
+        train_ner_model(
+            debug=False, 
+            count_labels_in_text=False,
+            learning_rate=config.learning_rate, 
+            per_device_train_batch_size=config.per_device_train_batch_size, 
+            per_device_eval_batch_size=config.per_device_eval_batch_size, 
+            num_train_epochs=config.num_train_epochs, 
+            weight_decay=config.weight_decay, 
+            warmup_steps=config.warmpu_steps, 
+            load_best_model_at_end=True,
+            logging_steps=config.warmup_steps
+        )
+        
+        # may need to return a metric for logging purposes
