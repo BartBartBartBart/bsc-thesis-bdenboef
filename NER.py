@@ -5,8 +5,9 @@ from transformers import BertTokenizerFast
 from transformers import AutoTokenizer
 import numpy as np
 from transformers import DataCollatorWithPadding, AutoModelForTokenClassification, TrainingArguments, Trainer
-from torch.nn import CrossEntropyLoss
+from torch.nn import CrossEntropyLoss, functional
 import torch
+import evaluate
 
 id2label = {
     0: 'O',
@@ -37,7 +38,7 @@ label2id = {
 
 tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
 label_list = ['O', 'B-CLASS', 'I-CLASS', 'B-ATTRIBUTE', 'I-ATTRIBUTE', 'B-ASSOCIATION', 'I-ASSOCIATION', 'B-SYSTEM', 'I-SYSTEM', 'B-OPERATION', 'I-OPERATION']
-metric = datasets.load_metric("seqeval")
+metric = evaluate.load("seqeval")
 
 class NER_Model():
     def __init__(self):
@@ -92,9 +93,46 @@ class NER_Model():
             warmup_steps = 10,
             load_best_model_at_end=True,
             logging_steps=10,
-            # compute_loss = CrossEntropyLoss(weight=weight_normalization(len(id2label), count_labels(self.dataset)))
-        ) 
+        )
 
+class NER_Trainer(Trainer):
+    """
+    Custom Trainer class that inherits from the original Trainer class.
+    Can perform weighted CrossEntropyLoss to counter imbalanced classes.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def compute_loss(self, model, inputs, return_outputs=False):
+        """
+        How the loss is computed by Trainer. By default, all models return the loss in the first element.
+        Subclass and override for custom behavior.
+        """
+        if self.label_smoother is not None and "labels" in inputs:
+            labels = inputs.pop("labels")
+        else:
+            labels = None
+        outputs = model(**inputs)
+        
+        if self.args.past_index >= 0:
+            self._past = outputs[self.args.past_index]
+
+        if labels is not None:
+            logits = outputs.get('logits')
+            class_weights = weight_normalization(n_classes=11, occurences_per_class=[1505, 383, 92, 119, 91, 166, 58, 43, 35, 10, 1])
+            loss_fct = CrossEntropyLoss(ignore_index=-100, weight=class_weights)
+            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+        else:
+            if isinstance(outputs, dict) and "loss" not in outputs:
+                raise ValueError(
+                    "The model did not return a loss from the inputs, only the following keys: "
+                    f"{','.join(outputs.keys())}. For reference, the inputs it received are {','.join(inputs.keys())}."
+                )
+            # We don't use .loss here since the model may return tuples instead of ModelOutput.
+            loss = outputs["loss"] if isinstance(outputs, dict) else outputs[0]
+
+        return (loss, outputs) if return_outputs else loss
+                    
 def load_data():
     return load_dataset("json", data_files="./Dataset/small_test_set.json")
 
@@ -108,7 +146,7 @@ def load_data_collater(tokenizer):
     return DataCollatorWithPadding(tokenizer, padding=True)
 
 def load_seqeval():
-    return datasets.load_metric("seqeval")
+    return evaluate.load("seqeval")
 
 def remove_rejected_texts(dataset):
     indices_to_be_removed = []
@@ -340,8 +378,9 @@ def count_labels(dataset):
         for label in labels:
             if label != -100:
                 label_counts[id2label[label]] += 1
-    print(label_counts)
+    # print(label_counts)
     return list(label_counts.values())
+
 
 def weight_normalization(n_classes, occurences_per_class):
     weights_per_class = 1.0 / np.array(np.power(occurences_per_class, 1))
@@ -379,38 +418,21 @@ def train_ner_model(debug=False, count_labels_in_text=False):
     
     if count_labels_in_text:
         label_counts = count_labels(ner_model.dataset)
+        print(label_counts)
         
     train_set, eval_set = clean_and_split_dataset(ner_model.dataset)
     
-    
-    # LOSS_FN DOESNT WORK THIS WAY
-    # OVERWRITE TRAINER CLASS FOR CUSTOM LOSS
-    # args = TrainingArguments( 
-    #     "test-ner",
-    #     save_strategy = "epoch",
-    #     evaluation_strategy = "epoch", 
-    #     learning_rate=9e-5, 
-    #     per_device_train_batch_size=16, 
-    #     per_device_eval_batch_size=16, 
-    #     num_train_epochs=40, 
-    #     weight_decay=0.01, 
-    #     warmup_steps = 10,
-    #     load_best_model_at_end=True,
-    #     logging_steps=10,
-    #     loss_fn = CrossEntropyLoss(weight=weight_normalization(len(id2label), count_labels(ner_model.dataset)))
-    # ) 
-    
-    trainer = Trainer( 
-        ner_model.model, 
-        ner_model.args, 
+    trainer = NER_Trainer( 
+        model=ner_model.model, 
+        args=ner_model.args, 
         train_dataset=train_set, 
         eval_dataset=eval_set, 
         data_collator=ner_model.data_collator, 
         tokenizer=tokenizer, 
-        compute_metrics=compute_metrics 
+        compute_metrics=compute_metrics,
     ) 
     
     trainer.train()
     
 if __name__ == "__main__":
-    train_ner_model(count_labels_in_text=False)
+    train_ner_model(debug=False, count_labels_in_text=False)
