@@ -460,3 +460,18 @@ if __name__ == "__main__":
         )
         
         # may need to return a metric for logging purposes
+    
+    # Normal Run
+    #
+    # train_ner_model(
+    #     debug=False, 
+    #     count_labels_in_text=False,
+    #     learning_rate=9e-5, 
+    #     per_device_train_batch_size=16, 
+    #     per_device_eval_batch_size=16, 
+    #     num_train_epochs=40, 
+    #     weight_decay=0.01, 
+    #     warmup_steps = 10,
+    #     load_best_model_at_end=True,
+    #     logging_steps=10,
+    # ) 

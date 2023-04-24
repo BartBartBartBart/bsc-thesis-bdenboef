@@ -2,18 +2,36 @@ program: NER.py
 method: Bayes
 project: ner-bert
 metric:
-  name: accuracy
+  name: f1
   goal: maximize
 parameters:
-  bootstrap:
-    values: [True, False]
-  max_depth:
-    values: [2, 3, 4, 5, 6, 7, 8, 9, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, None]
-  max_features:
-    values: ['auto', 'sqrt']
-  min_samples_leaf:
-    values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-  min_samples_split:
-    values: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-  n_estimators:
-    values: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300, 500]
+  learning_rate:
+    values: [1e-6, 3e-6, 5e-6, 7e-6, 9e-6, 2e-5, 4e-5, 6e-5, 8e-5, 1e-4, 3e-4, 5e-4, 7e-4, 9e-4]
+  per_device_train_batch_size:
+    values: [4,8,16,32]
+  per_device_eval_batch_size:
+    values: [4,8,16,32]
+  num_train_epochs:
+    values: [20,30,40,50]
+  weight_decay:
+    values: [0, 0,1, 0.2, 0.3, 0.4, 0.5, 0.6]
+  warmup_steps:
+    values: [0, 5, 10, 15] 
+  
+# method?
+# good values for params?
+# good metric to evaluate?
+# do i need to return a metric for logging? im not doing inference yet
+
+# per_device_train_batch_size=per_device_train_batch_size, 
+# per_device_eval_batch_size=per_device_eval_batch_size, 
+# num_train_epochs=num_train_epochs, 
+# weight_decay=weight_decay, 
+# warmup_steps = warmup_steps,
+# load_best_model_at_end=load_best_model_at_end,
+# logging_steps=logging_steps,
+# TRAIN_BATCH_SIZE = 32
+# EVAL_BATCH_SIZE = 8
+# PREDICT_BATCH_SIZE = 8
+# LEARNING_RATE = 2e-5
+# NUM_TRAIN_EPOCHS = 3.0
