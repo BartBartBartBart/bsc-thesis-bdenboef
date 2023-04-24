@@ -1,50 +1,12 @@
 # Contains data pre-processing methods
 
-from transformers import BertTokenizerFast
 import numpy as np
 import evaluate
-
-id2label = {
-    0: "O",
-    1: "B-CLASS",
-    2: "I-CLASS",
-    3: "B-ATTRIBUTE",
-    4: "I-ATTRIBUTE",
-    5: "B-ASSOCIATION",
-    6: "I-ASSOCIATION",
-    7: "B-SYSTEM",
-    8: "I-SYSTEM",
-    9: "B-OPERATION",
-    10: "I-OPERATION",
-}
-label2id = {
-    "O": 0,
-    "B-CLASS": 1,
-    "I-CLASS": 2,
-    "B-ATTRIBUTE": 3,
-    "I-ATTRIBUTE": 4,
-    "B-ASSOCIATION": 5,
-    "I-ASSOCIATION": 6,
-    "B-SYSTEM": 7,
-    "I-SYSTEM": 8,
-    "B-OPERATION": 9,
-    "I-OPERATION": 10,
-}
-tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
-label_list = [
-    "O",
-    "B-CLASS",
-    "I-CLASS",
-    "B-ATTRIBUTE",
-    "I-ATTRIBUTE",
-    "B-ASSOCIATION",
-    "I-ASSOCIATION",
-    "B-SYSTEM",
-    "I-SYSTEM",
-    "B-OPERATION",
-    "I-OPERATION",
-]
-metric = evaluate.load("seqeval")
+from constants import (
+    ID2LABEL,
+    LABEL2ID,
+    LABEL_LIST,
+)
 
 
 def remove_rejected_texts(dataset):
@@ -63,7 +25,7 @@ def remove_rejected_texts(dataset):
 def list_labels(dataset, text_nr):
     for text, label in zip(dataset["train"][text_nr]["tokens"], dataset["train"][text_nr]["labels"]):
         if label > -100:
-            label = id2label[label]
+            label = ID2LABEL[label]
         print(f"{text}, {label}")
 
 
@@ -71,7 +33,7 @@ def list_labels(dataset, text_nr):
 def add_token_labels(text):
     for tokens in text["tokens"]:
         for token in tokens:
-            token["label"] = label2id["O"]
+            token["label"] = LABEL2ID["O"]
 
     return text
 
@@ -98,13 +60,13 @@ def add_span_ner_labels(texts):
                 for token in tokens:
                     if token_nr == span_nr and token["id"] >= start and token["id"] <= end:
                         if token["id"] == start:
-                            if label2id["B-" + label] == []:
+                            if LABEL2ID["B-" + label] == []:
                                 print("B-" + label)
-                            token["label"] = label2id["B-" + label]
+                            token["label"] = LABEL2ID["B-" + label]
                         else:
-                            if label2id["I-" + label] == []:
+                            if LABEL2ID["I-" + label] == []:
                                 print("I-" + label)
-                            token["label"] = label2id["I-" + label]
+                            token["label"] = LABEL2ID["I-" + label]
 
     return texts
 
@@ -160,60 +122,18 @@ def split_texts(dataset):
     return {"labels": all_labels, "tokens": all_tokens}
 
 
-def tokenize_and_align_labels(texts, label_all_tokens=True):
-    tokenized_inputs = tokenizer(
-        texts["tokens"], truncation=True, is_split_into_words=True, padding="max_length"
-    )
-
-    labels = []
-    for i, label in enumerate(texts["labels"]):
-        word_ids = tokenized_inputs.word_ids(batch_index=i)
-        # word_ids() => Return a list mapping the tokens
-        # to their actual word in the initial sentence.
-        # It Returns a list indicating the word corresponding to each token.
-        previous_word_idx = None
-        label_ids = []
-        # Special tokens like `<s>` and `<\s>` are originally mapped to None
-        # We need to set the label to -100 so they are automatically ignored in the loss function.
-        for word_idx in word_ids:
-            if word_idx is None:
-                # set –100 as the label for these special tokens
-                label_ids.append(-100)
-            # For the other tokens in a word, we set the label to either the current label or -100, depending on
-            # the label_all_tokens flag.
-            elif word_idx != previous_word_idx:
-                # if current word_idx is != prev then its the most regular case
-                # and add the corresponding token
-                label_ids.append(label[word_idx])
-
-            else:
-                # to take care of sub-words which have the same word_idx
-                # set -100 as well for them, but only if label_all_tokens == False
-                label_ids.append(label[word_idx] if label_all_tokens else -100)
-                # mask the subword representations after the first subword
-
-            previous_word_idx = word_idx
-        labels.append(label_ids)
-    tokenized_inputs["labels"] = labels
-
-    return {
-        "labels": tokenized_inputs["labels"],
-        "input_ids": tokenized_inputs["input_ids"],
-        "token_type_ids": tokenized_inputs["token_type_ids"],
-        "attention_mask": tokenized_inputs["attention_mask"],
-    }
-
-
-def check_tokens(dataset):
-    for token, label in zip(
-        tokenizer.convert_ids_to_tokens(dataset["train"][4]["input_ids"]), dataset["train"][4]["labels"]
-    ):
-        if label > -100:
-            label = id2label[label]
-        print(f"{token:_<40} {label}")
+# def check_tokens(dataset):
+#     for token, label in zip(
+#         tokenizer.convert_ids_to_tokens(dataset["train"][4]["input_ids"]), dataset["train"][4]["labels"]
+#     ):
+#         if label > -100:
+#             label = ID2LABEL[label]
+#         print(f"{token:_<40} {label}")
 
 
 def compute_metrics(eval_preds):
+    metric = evaluate.load("seqeval")
+
     pred_logits, labels = eval_preds
 
     pred_logits = np.argmax(pred_logits, axis=2)
@@ -222,12 +142,12 @@ def compute_metrics(eval_preds):
 
     # We remove all the values where the label is -100
     predictions = [
-        [label_list[eval_preds] for (eval_preds, l) in zip(prediction, label) if l != -100]
+        [LABEL_LIST[eval_preds] for (eval_preds, l) in zip(prediction, label) if l != -100]
         for prediction, label in zip(pred_logits, labels)
     ]
 
     true_labels = [
-        [label_list[l] for (eval_preds, l) in zip(prediction, label) if l != -100]
+        [LABEL_LIST[l] for (eval_preds, l) in zip(prediction, label) if l != -100]
         for prediction, label in zip(pred_logits, labels)
     ]
 

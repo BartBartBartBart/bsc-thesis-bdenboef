@@ -23,46 +23,6 @@ class NER_Model:
     ):
         self.tokenizer = load_tokenizer()
         self.dataset = load_data()
-        # Map id to label
-        self.id2label = {
-            0: "O",
-            1: "B-CLASS",
-            2: "I-CLASS",
-            3: "B-ATTRIBUTE",
-            4: "I-ATTRIBUTE",
-            5: "B-ASSOCIATION",
-            6: "I-ASSOCIATION",
-            7: "B-SYSTEM",
-            8: "I-SYSTEM",
-            9: "B-OPERATION",
-            10: "I-OPERATION",
-        }
-        self.label2id = {
-            "O": 0,
-            "B-CLASS": 1,
-            "I-CLASS": 2,
-            "B-ATTRIBUTE": 3,
-            "I-ATTRIBUTE": 4,
-            "B-ASSOCIATION": 5,
-            "I-ASSOCIATION": 6,
-            "B-SYSTEM": 7,
-            "I-SYSTEM": 8,
-            "B-OPERATION": 9,
-            "I-OPERATION": 10,
-        }
-        self.label_list = [
-            "O",
-            "B-CLASS",
-            "I-CLASS",
-            "B-ATTRIBUTE",
-            "I-ATTRIBUTE",
-            "B-ASSOCIATION",
-            "I-ASSOCIATION",
-            "B-SYSTEM",
-            "I-SYSTEM",
-            "B-OPERATION",
-            "I-OPERATION",
-        ]
 
         # Load bert base model
         self.model = load_model()
@@ -88,7 +48,7 @@ class NER_Model:
 
 
 def load_data():
-    return load_dataset("json", data_files="./Dataset/small_test_set.json")
+    return load_dataset("json", data_files="./dataset/small_test_set.json")
 
 
 def load_tokenizer():

@@ -5,20 +5,7 @@ from transformers import Trainer
 from torch import nn
 import torch
 import numpy as np
-
-id2label = {
-    0: "O",
-    1: "B-CLASS",
-    2: "I-CLASS",
-    3: "B-ATTRIBUTE",
-    4: "I-ATTRIBUTE",
-    5: "B-ASSOCIATION",
-    6: "I-ASSOCIATION",
-    7: "B-SYSTEM",
-    8: "I-SYSTEM",
-    9: "B-OPERATION",
-    10: "I-OPERATION",
-}
+from constants import ID2LABEL
 
 
 class NER_Trainer(Trainer):
@@ -80,7 +67,7 @@ def count_labels(dataset):
     for labels in dataset["train"]["labels"]:
         for label in labels:
             if label != -100:
-                label_counts[id2label[label]] += 1
+                label_counts[ID2LABEL[label]] += 1
     # print(label_counts)
     return list(label_counts.values())
 
@@ -89,3 +76,6 @@ def weight_normalization(n_classes, occurences_per_class):
     weights_per_class = 1.0 / np.array(np.power(occurences_per_class, 1))
     weights_per_class = weights_per_class / np.sum(weights_per_class) * n_classes
     return torch.tensor(weights_per_class)
+
+
+# TODO: make weightnormalization dynamic

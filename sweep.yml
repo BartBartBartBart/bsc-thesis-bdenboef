@@ -2,7 +2,7 @@ program: NER.py
 method: bayes
 project: ner-bert
 metric:
-  name: eval_f1
+  name: eval/f1
   goal: maximize
 parameters:
   learning_rate:
