@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 110
+include = '\.pyi?$'
+exclude = '.git, .env, __pycache__'
+
+[tool.flake8]
+max-line-length = 120
+max-complexity = 10
+ignore = 'E203, E266, E501, W503, F403, F401'
+select = 'E9,F63,F7,F82'
+exclude = '.git, *.env, __pycache__'

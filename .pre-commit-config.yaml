@@ -1,0 +1,20 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 22.3.0 # Replace by any tag/version: https://github.com/psf/black/tags
+    hooks:
+      - id: black
+        name: black
+        entry: black
+        types: [python]
+        args: [--config=./pyproject.toml]
+        language_version: python3
+
+  - repo: https://github.com/pycqa/flake8
+    rev: 4.0.1
+    hooks:
+      - id: flake8
+        name: pflake8
+        entry: pflake8
+        types: [python]
+        language_version: python3
+        additional_dependencies: [pyproject-flake8]  # let flake8 pull the config from pyproject.toml, just as black
