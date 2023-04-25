@@ -68,7 +68,7 @@ def count_labels(dataset):
         for label in labels:
             if label != -100:
                 label_counts[ID2LABEL[label]] += 1
-    # print(label_counts)
+
     return list(label_counts.values())
 
 

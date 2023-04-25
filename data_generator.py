@@ -1,8 +1,9 @@
 # Contains a wrapper class to generate the dataset with tokenization etc
 
 import datasets
+from datasets import load_dataset
+from transformers import BertTokenizerFast
 
-from model import load_data, load_tokenizer
 from utils import remove_rejected_texts, add_token_labels, add_span_ner_labels, align_labels, split_texts
 
 
@@ -99,3 +100,11 @@ class data_generator:
 
     def load_tokenized_dataset(self, filename):
         return datasets.load_dataset("json", data_files=filename)
+
+
+def load_data():
+    return load_dataset("json", data_files="./dataset/small_test_set.json")
+
+
+def load_tokenizer():
+    return BertTokenizerFast.from_pretrained("bert-base-uncased")
