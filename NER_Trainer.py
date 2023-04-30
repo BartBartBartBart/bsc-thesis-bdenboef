@@ -7,6 +7,8 @@ import torch
 import numpy as np
 from constants import ID2LABEL
 
+from data_generator import data_generator
+
 
 class NER_Trainer(Trainer):
     """
@@ -16,6 +18,7 @@ class NER_Trainer(Trainer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.label_counts = count_labels()
 
     def compute_loss(self, model, inputs, return_outputs=False):
         """
@@ -33,9 +36,7 @@ class NER_Trainer(Trainer):
 
         if labels is not None:
             logits = outputs.get("logits")
-            class_weights = weight_normalization(
-                n_classes=11, occurences_per_class=[1505, 383, 92, 119, 91, 166, 58, 43, 35, 10, 1]
-            )
+            class_weights = weight_normalization(n_classes=11, occurences_per_class=self.label_counts)
             loss_fct = nn.CrossEntropyLoss(ignore_index=-100, weight=class_weights)
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
         else:
@@ -50,7 +51,11 @@ class NER_Trainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def count_labels(dataset):
+def count_labels():
+    generator = data_generator()
+
+    dataset = generator.generate_dataset()
+
     label_counts = {
         "O": 0,
         "B-CLASS": 0,
@@ -76,6 +81,3 @@ def weight_normalization(n_classes, occurences_per_class):
     weights_per_class = 1.0 / np.array(np.power(occurences_per_class, 1))
     weights_per_class = weights_per_class / np.sum(weights_per_class) * n_classes
     return torch.tensor(weights_per_class)
-
-
-# TODO: make weightnormalization dynamic

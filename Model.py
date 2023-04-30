@@ -5,6 +5,8 @@ from transformers import (
     DataCollatorWithPadding,
 )
 
+from data_generator import load_tokenizer
+
 
 class NER_Model:
     def __init__(
@@ -21,6 +23,9 @@ class NER_Model:
 
         # Load bert base model
         self.model = load_model()
+
+        # Load tokenizer
+        self.tokenizer = load_tokenizer()
 
         # Load data collater
         self.data_collator = load_data_collater(self.tokenizer)
