@@ -2,6 +2,7 @@
 
 import numpy as np
 import evaluate
+
 from constants import (
     ID2LABEL,
     LABEL2ID,

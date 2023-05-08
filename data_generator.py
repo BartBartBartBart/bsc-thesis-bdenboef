@@ -3,6 +3,9 @@
 import datasets
 from datasets import load_dataset
 from transformers import BertTokenizerFast
+import pandas as pd
+import keras
+import numpy as np
 
 from utils import remove_rejected_texts, add_token_labels, add_span_ner_labels, align_labels, split_texts
 
@@ -11,7 +14,7 @@ class data_generator:
     def __init__(self):
         self.tokenizer = load_tokenizer()
 
-    def generate_dataset(self):
+    def generate_ner_dataset(self):
         dataset = load_data()
 
         # Perform preprocessing
@@ -94,6 +97,14 @@ class data_generator:
             "token_type_ids": tokenized_inputs["token_type_ids"],
             "attention_mask": tokenized_inputs["attention_mask"],
         }
+
+    def generate_re_dataset(self):
+        dataset = load_data()
+        dataset = remove_rejected_texts(dataset)
+        # TODO: filter rels, transform data into appropriate form, tokenization must be done for training, maybe extract list of entities first?
+
+    def generate_baseline_dataset(self):
+        dataset = pd.read_json("./dataset/small_test_set.json", lines=True)
 
     def save_dataset(self, dataset, filename):
         dataset.to_json(filename)

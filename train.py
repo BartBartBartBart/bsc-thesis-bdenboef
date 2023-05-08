@@ -70,7 +70,7 @@ def train_ner_model(
     )
 
     generator = data_generator()
-    dataset = generator.generate_dataset()
+    dataset = generator.generate_ner_dataset()
     # dataset = generator.save_dataset(dataset, 'tokenized_dataset')
     # dataset = generator.load_tokenized_dataset('tokenized_dataset/')
 
