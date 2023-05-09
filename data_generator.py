@@ -7,7 +7,14 @@ import pandas as pd
 import keras
 import numpy as np
 
-from utils import remove_rejected_texts, add_token_labels, add_span_ner_labels, align_labels, split_texts
+from utils import (
+    remove_rejected_texts,
+    add_token_labels,
+    add_span_ner_labels,
+    align_labels,
+    split_texts,
+    extract_relations,
+)
 
 
 class data_generator:
@@ -101,6 +108,7 @@ class data_generator:
     def generate_re_dataset(self):
         dataset = load_data()
         dataset = remove_rejected_texts(dataset)
+        dataset = extract_relations(dataset)
         # TODO: filter rels, transform data into appropriate form, tokenization must be done for training, maybe extract list of entities first?
 
     def generate_baseline_dataset(self):

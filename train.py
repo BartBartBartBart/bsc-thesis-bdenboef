@@ -90,37 +90,38 @@ def train_ner_model(
 
 
 if __name__ == "__main__":
-    with wandb.init(project="ner-bert"):
+    # with wandb.init(project="ner-bert"):
 
-        # For hyperparameter optimization with wandb
+    # For hyperparameter optimization with wandb
 
-        #     config = wandb.config
+    #     config = wandb.config
 
-        #     train_ner_model(
-        #         learning_rate=config.learning_rate,
-        #         per_device_train_batch_size=config.per_device_train_batch_size,
-        #         per_device_eval_batch_size=config.per_device_eval_batch_size,
-        #         num_train_epochs=config.num_train_epochs,
-        #         weight_decay=config.weight_decay,
-        #         warmup_steps=config.warmup_steps,
-        #         load_best_model_at_end=True,
-        #         logging_steps=10
-        #     )
+    #     train_ner_model(
+    #         learning_rate=config.learning_rate,
+    #         per_device_train_batch_size=config.per_device_train_batch_size,
+    #         per_device_eval_batch_size=config.per_device_eval_batch_size,
+    #         num_train_epochs=config.num_train_epochs,
+    #         weight_decay=config.weight_decay,
+    #         warmup_steps=config.warmup_steps,
+    #         load_best_model_at_end=True,
+    #         logging_steps=10
+    #     )
 
-        # Normal Run
-        #
+    # Normal Run
+    #
 
-        args = parser.parse_args()
+    # args = parser.parse_args()
 
-        train_ner_model(
-            learning_rate=args.learning_rate,
-            per_device_train_batch_size=args.train_batch_size,
-            per_device_eval_batch_size=args.eval_batch_size,
-            num_train_epochs=args.epochs,
-            weight_decay=args.epochs,
-            warmup_steps=args.warmup_steps,
-            load_best_model_at_end=True,
-            logging_steps=args.logging_steps,
-        )
-
+    # train_ner_model(
+    #     learning_rate=args.learning_rate,
+    #     per_device_train_batch_size=args.train_batch_size,
+    #     per_device_eval_batch_size=args.eval_batch_size,
+    #     num_train_epochs=args.epochs,
+    #     weight_decay=args.epochs,
+    #     warmup_steps=args.warmup_steps,
+    #     load_best_model_at_end=True,
+    #     logging_steps=args.logging_steps,
+    # )
+    generator = data_generator()
+    re_dataset = generator.generate_re_dataset()
     # TODO: set seed

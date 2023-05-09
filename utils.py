@@ -172,3 +172,62 @@ def clean_and_split_dataset(dataset):
     # create new eval dataset
     eval_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in [0, 1, 2, 3]))
     return train_set, eval_set
+
+
+def list_relations(dataset):
+    all_relations = []
+
+    for batch_nr, relations in enumerate(dataset["relations"]):
+        # contains all relations in tuple shape (head,child,label)
+        rel_in_batch = []
+        for relation in relations:
+            head_begin = relation["head_span"]["token_start"]
+            head_end = relation["head_span"]["token_end"]
+            child_begin = relation["child_span"]["token_start"]
+            child_end = relation["child_span"]["token_end"]
+
+            head_entity = ""
+            child_entity = ""
+            for token_nr, token in enumerate(dataset["tokens"][batch_nr]):
+                if token_nr >= head_begin and token_nr <= head_end:
+                    if head_entity != "":
+                        head_entity += " "
+                    head_entity += token
+                if token_nr >= child_begin and token_nr <= child_end:
+                    if child_entity != "":
+                        child_entity += " "
+                    child_entity += token
+            label = relation["label"]
+
+            # For debugging purposes
+            # print(f"({head_entity},{child_entity})--> REL: {label}")
+
+            rel_in_batch.append((head_entity, child_entity, label))
+        all_relations.append(rel_in_batch)
+
+    return {"relations": all_relations}
+
+
+def extract_relations(dataset):
+    # Add labels
+    dataset = dataset.map(add_token_labels, batched=True)
+    dataset = dataset.map(add_span_ner_labels, batched=True)
+
+    # Align labels
+    dataset = dataset.map(align_labels, batched=True)
+
+    dataset = dataset.map(split_texts)
+
+    dataset = dataset.map(list_relations, batched=True)
+    print(dataset["train"][0]["relations"])
+    # print(dataset["train"][0]["relations"])
+    return dataset
+
+
+# IMPLEMENTATION IDEA:
+# list of spans (so can be single words) with ID
+# list of relations of shape ("SPAN1", "SPAN2", "LABEL")
+# Per sentence? When do I tokenize?
+# Would this be a good input structure?
+# "This is a sentence" -> [[rel1],[rel2]]
+# and so on..
