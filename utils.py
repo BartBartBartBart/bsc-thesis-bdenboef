@@ -72,6 +72,7 @@ def add_span_ner_labels(texts):
     return texts
 
 
+# Align labels
 def align_labels(texts):
     all_tokens = []
     all_labels = []
@@ -209,18 +210,8 @@ def list_relations(dataset):
 
 
 def extract_relations(dataset):
-    # Add labels
-    dataset = dataset.map(add_token_labels, batched=True)
-    dataset = dataset.map(add_span_ner_labels, batched=True)
-
-    # Align labels
-    dataset = dataset.map(align_labels, batched=True)
-
-    dataset = dataset.map(split_texts)
-
     dataset = dataset.map(list_relations, batched=True)
     print(dataset["train"][0]["relations"])
-    # print(dataset["train"][0]["relations"])
     return dataset
 
 

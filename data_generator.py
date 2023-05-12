@@ -14,6 +14,7 @@ from utils import (
     align_labels,
     split_texts,
     extract_relations,
+    list_relations,
 )
 
 
@@ -105,11 +106,60 @@ class data_generator:
             "attention_mask": tokenized_inputs["attention_mask"],
         }
 
+    def tokenize_relations(self, dataset):
+        all_relations = []
+        for relations in dataset["relations"]:
+            rel_in_text = []
+            for relation in relations:
+                head, child, label = relation
+                print(head, child)
+                head = self.tokenizer(head, truncation=False)["input_ids"]
+                child = self.tokenizer(child, truncation=False)["input_ids"]
+                print("HEAD", head)
+                rel_in_text.append((head, child, label))
+            all_relations.append(rel_in_text)
+
+        return {"relations": all_relations}
+
     def generate_re_dataset(self):
         dataset = load_data()
         dataset = remove_rejected_texts(dataset)
-        dataset = extract_relations(dataset)
-        # TODO: filter rels, transform data into appropriate form, tokenization must be done for training, maybe extract list of entities first?
+        # Add labels
+        dataset = dataset.map(add_token_labels, batched=True)
+        dataset = dataset.map(add_span_ner_labels, batched=True)
+
+        # Align labels
+        dataset = dataset.map(align_labels, batched=True)
+
+        # Remove some columns
+        dataset = dataset.remove_columns(
+            [
+                "id",
+                "text",
+                "_input_hash",
+                "_task_hash",
+                "_is_binary",
+                "spans",
+                "_view_id",
+                "answer",
+                "_timestamp",
+                "old_tokens",
+            ]
+        )
+        # print(dataset["train"]["relations"])
+        # Split texts into batches of 400
+        # dataset = dataset.map(split_texts, batched=True)
+        dataset = dataset.map(self.tokenize_and_align_labels, batched=True)
+        dataset = dataset.map(list_relations, batched=True)
+        dataset = dataset.map(self.tokenize_relations, batched=True)
+
+        # dataset = extract_relations(dataset)
+        print(dataset["train"]["relations"])
+        print(len(dataset["train"][0]["tokens"]))
+        print(len(dataset["train"][0]["input_ids"]))
+        print(dataset["train"])
+
+        # TODO: transform data into appropriate form, tokenization must be done for training, maybe extract list of entities first?
 
     def generate_baseline_dataset(self):
         dataset = pd.read_json("./dataset/small_test_set.json", lines=True)
