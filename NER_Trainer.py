@@ -54,7 +54,7 @@ class NER_Trainer(Trainer):
 def count_labels():
     generator = data_generator()
 
-    dataset = generator.generate_dataset()
+    dataset = generator.generate_ner_dataset()
 
     label_counts = {
         "O": 0,

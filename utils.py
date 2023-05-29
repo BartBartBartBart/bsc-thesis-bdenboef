@@ -2,6 +2,8 @@
 
 import numpy as np
 import evaluate
+import random
+import torch
 
 from constants import (
     ID2LABEL,
@@ -166,12 +168,25 @@ def compute_metrics(eval_preds):
     }
 
 
-def clean_and_split_dataset(dataset):
+def cv_split(dataset, fold):
+    if fold == 0:
+        train_split = [0, 1]
+        eval_split = [2, 3, 4, 5, 6]
+    elif fold == 1:
+        train_split = [2, 3]
+        eval_split = [0, 1, 4, 5, 6]
+    elif fold == 2:
+        train_split = [4, 5]
+        eval_split = [0, 1, 2, 3, 6]
+    elif fold == 3:
+        train_split = [5, 6]
+        eval_split = [0, 1, 2, 3, 4]
+
     # create new train dataset
-    train_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in [4, 5, 6]))
+    train_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in train_split))
 
     # create new eval dataset
-    eval_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in [0, 1, 2, 3]))
+    eval_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in eval_split))
     return train_set, eval_set
 
 
@@ -213,6 +228,15 @@ def extract_relations(dataset):
     dataset = dataset.map(list_relations, batched=True)
     print(dataset["train"][0]["relations"])
     return dataset
+
+
+def set_seeds(seed=1234):
+    """Set seeds for reproducibility."""
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # multi-GPU
 
 
 # IMPLEMENTATION IDEA:

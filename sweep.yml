@@ -1,4 +1,4 @@
-program: NER.py
+program: train.py
 method: bayes
 project: ner-bert
 metric:
@@ -14,7 +14,7 @@ parameters:
   num_train_epochs:
     values: [20,30,40,50]
   weight_decay:
-    values: [0, 0,1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    values: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]
   warmup_steps:
     values: [0, 5, 10, 15] 
   

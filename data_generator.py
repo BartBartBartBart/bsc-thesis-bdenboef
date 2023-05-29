@@ -22,7 +22,7 @@ class data_generator:
     def __init__(self):
         self.tokenizer = load_tokenizer()
 
-    def generate_ner_dataset(self):
+    def generate_ner_dataset(self, remove_labels=True):
         dataset = load_data()
 
         # Perform preprocessing
@@ -45,7 +45,6 @@ class data_generator:
                 "_is_binary",
                 "spans",
                 "_view_id",
-                "relations",
                 "answer",
                 "_timestamp",
                 "old_tokens",
@@ -58,8 +57,9 @@ class data_generator:
         # Tokenize and align labels
         dataset = dataset.map(self.tokenize_and_align_labels, batched=True)
 
-        # Remove some columns
-        dataset = dataset.remove_columns(["tokens"])
+        if remove_labels:
+            # Remove some columns
+            dataset = dataset.remove_columns(["tokens"])
 
         return dataset
 
@@ -108,20 +108,24 @@ class data_generator:
 
     def tokenize_relations(self, dataset):
         all_relations = []
+        all_labels = []
         for relations in dataset["relations"]:
             rel_in_text = []
+            label_in_text = []
             for relation in relations:
                 head, child, label = relation
-                print(head, child)
                 head = self.tokenizer(head, truncation=False)["input_ids"]
                 child = self.tokenizer(child, truncation=False)["input_ids"]
-                print("HEAD", head)
-                rel_in_text.append((head, child, label))
+                label_in_text.append(label)
+                rel_in_text.append([head, child])
             all_relations.append(rel_in_text)
+            all_labels.append(label_in_text)
 
-        return {"relations": all_relations}
+        return {"relations": all_relations, "rel_labels": all_labels}
 
     def generate_re_dataset(self):
+        # dataset = self.generate_ner_dataset(remove_labels=False)
+
         dataset = load_data()
         dataset = remove_rejected_texts(dataset)
         # Add labels
@@ -146,20 +150,11 @@ class data_generator:
                 "old_tokens",
             ]
         )
-        # print(dataset["train"]["relations"])
-        # Split texts into batches of 400
-        # dataset = dataset.map(split_texts, batched=True)
         dataset = dataset.map(self.tokenize_and_align_labels, batched=True)
         dataset = dataset.map(list_relations, batched=True)
         dataset = dataset.map(self.tokenize_relations, batched=True)
 
-        # dataset = extract_relations(dataset)
-        print(dataset["train"]["relations"])
-        print(len(dataset["train"][0]["tokens"]))
-        print(len(dataset["train"][0]["input_ids"]))
-        print(dataset["train"])
-
-        # TODO: transform data into appropriate form, tokenization must be done for training, maybe extract list of entities first?
+        return dataset
 
     def generate_baseline_dataset(self):
         dataset = pd.read_json("./dataset/small_test_set.json", lines=True)
