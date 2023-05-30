@@ -128,4 +128,4 @@ if __name__ == "__main__":
     dataset = generator.generate_re_dataset()
     re = rel_extractor()
     train_set, eval_set = cv_split(dataset=dataset, fold=0)
-    re.extract_relations(eval_set)
+    relations = re.extract_relations(eval_set)
