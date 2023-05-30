@@ -127,4 +127,5 @@ if __name__ == "__main__":
     generator = data_generator()
     dataset = generator.generate_re_dataset()
     re = rel_extractor()
-    re.extract_relations(dataset)
+    train_set, eval_set = cv_split(dataset=dataset, fold=0)
+    re.extract_relations(eval_set)
