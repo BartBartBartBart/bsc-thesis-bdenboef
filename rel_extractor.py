@@ -9,61 +9,93 @@ class rel_extractor:
         self.relations = []
 
     def extract_relations(self, dataset):
+        # Combine broken up entities
         all_entities, all_labels = self.combine_entities(dataset)
+
         for entities, labels in zip(all_entities, all_labels):
             relations_in_batch = []
             index = 0
+            subtype = True
+            classes_in_sentence = []
             for entity, label in zip(entities, labels):
                 # print(entity, label)
                 # Apply heuristics
 
                 # Rule for extracting association relations
                 if label == "ASSOCIATION":
-                    # print(label)
+                    subtype = False
+                    # print(entity)
                     if index > 0:
                         i = index
-                        while i > 0:
+                        while i > 0 and entities[i - 1] != ".":
                             if labels[i - 1] == "CLASS":
                                 # Check if last char is s for mulitplicity
                                 if entities[i - 1][-1] == "s":
-                                    relations_in_batch.append((entities[i - 1], entity, "ASSOCIATION1..*"))
+                                    # print([entities[i - 1], entity, "ASSOCIATION1..*"])
+                                    relations_in_batch.append([entities[i - 1], entity, "ASSOCIATION1..*"])
                                     break
                                 else:
-                                    relations_in_batch.append((entities[i - 1], entity, "ASSOCIATION1"))
+                                    # print([entities[i - 1], entity, "ASSOCIATION1"])
+                                    relations_in_batch.append([entities[i - 1], entity, "ASSOCIATION1"])
                                     break
                             i -= 1
                         i = index
-                        while i < len(labels):
+                        while i < len(labels) and entities[i + 1] != ".":
                             if labels[i + 1] == "CLASS":
-                                # Check if last char is s for mulitplicity
+                                # Check if last char is s for multiplicity
                                 if entities[i + 1][-1] == "s":
-                                    relations_in_batch.append((entity, entities[i + 1], "ASSOCIATION1..*"))
+                                    relations_in_batch.append([entity, entities[i + 1], "ASSOCIATION1..*"])
                                     break
                                 else:
-                                    relations_in_batch.append((entity, entities[i + 1], "ASSOCIATION1"))
+                                    relations_in_batch.append([entity, entities[i + 1], "ASSOCIATION1"])
                                     break
                             i += 1
 
-                    # Subtype relation
-                    if label == "SUBTYPE":
-                        pass
+                # For subtypes
+                if label == "CLASS":
+                    classes_in_sentence.append(index)
 
-                    # Attribute
-                    if label == "ATTRIBUTE":
-                        pass
+                # If no association within this sentence, create subtype relations
+                if entity == ".":
+                    if subtype:
+                        for class_entity in classes_in_sentence:
+                            if entities[class_entity] != entities[classes_in_sentence[0]]:
+                                relations_in_batch.append(
+                                    [entities[class_entity], entities[classes_in_sentence[0]], "SUBTYPE"]
+                                )
+                else:
+                    classes_in_sentence = []
+                    subtype = True
 
-                    # Operation
-                    if label == "OPERATION":
-                        pass
+                # Attribute
+                if label == "ATTRIBUTE":
+                    if index > 0:
+                        i = index
+                        while i > 0 and entities[i - 1] != ".":
+                            if labels[i - 1] == "CLASS":
+                                relations_in_batch.append([entity, entities[i - 1], "ATTRIBUTE"])
+                                break
+                            i -= 1
 
-                    if label == "Composition":
-                        pass
+                # Operation
+                if label == "OPERATION":
+                    if index > 0:
+                        i = index
+                        while i > 0 and entities[i - 1] != ".":
+                            if labels[i - 1] == "CLASS":
+                                relations_in_batch.append([entities[i - 1], entity, "OPERATION"])
+                                break
+                            i -= 1
+
+                if label == "Composition":
+                    pass
 
                     # Span, coref, aggregation?
+                    # Associations lopen nu nog over de hele tekst in principe, grens zetten bij zin
+                    # idem voor attribute
 
                 index += 1
             self.relations.append(relations_in_batch)
-        print(self.relations)
         return self.relations
 
     # Combines the split up entities into the same entity

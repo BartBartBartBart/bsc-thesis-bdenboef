@@ -7,7 +7,7 @@ from model import NER_Model
 from NER_Trainer import NER_Trainer
 from data_generator import data_generator
 from rel_extractor import rel_extractor
-from utils import cv_split, compute_metrics, set_seeds
+from utils import cv_split, compute_metrics, set_seeds, calculate_score
 
 # Parse arguments from command line
 parser = argparse.ArgumentParser(description="Add hyperparameters.")
@@ -127,5 +127,7 @@ if __name__ == "__main__":
     generator = data_generator()
     dataset = generator.generate_re_dataset()
     re = rel_extractor()
-    train_set, eval_set = cv_split(dataset=dataset, fold=0)
-    relations = re.extract_relations(eval_set)
+    train_set, eval_set = cv_split(dataset=dataset, fold=3)
+    predicted_relations = re.extract_relations(eval_set)
+    correct, wrong = calculate_score(eval_set["relations"], predicted_relations)
+    print(f"TOTAL: {correct} correct, {wrong} wrong")

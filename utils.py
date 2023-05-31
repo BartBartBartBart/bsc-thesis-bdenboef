@@ -180,7 +180,7 @@ def cv_split(dataset, fold):
         eval_split = [0, 1, 2, 3, 6]
     elif fold == 3:
         train_split = [5, 6]
-        eval_split = [0, 1, 2, 3, 4]
+        eval_split = [0, 1, 2, 3, 4, 6, 8, 9, 10]
 
     # create new train dataset
     train_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in train_split))
@@ -224,10 +224,10 @@ def list_relations(dataset):
     return {"relations": all_relations}
 
 
-def extract_relations(dataset):
-    dataset = dataset.map(list_relations, batched=True)
-    print(dataset["train"][0]["relations"])
-    return dataset
+# def extract_relations(dataset):
+#     dataset = dataset.map(list_relations, batched=True)
+#     print(dataset["train"][0]["relations"])
+#     return dataset
 
 
 def set_seeds(seed=1234):
@@ -237,6 +237,30 @@ def set_seeds(seed=1234):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)  # multi-GPU
+
+
+def calculate_score(true_rels, predictions):
+    all_correct = 0
+    all_wrong = 0
+    for batch, prediction in enumerate(predictions):
+        print(f"Batch {batch}")
+        wrong = 0
+        correct = 0
+        for pred in prediction:
+            if pred in true_rels[batch]:
+                index = true_rels[batch].index(pred)
+                print(pred, true_rels[batch][index])
+                true_rels[batch].remove(pred)
+                correct += 1
+            else:
+                wrong += 1
+        print("Missed", true_rels[batch])
+        print(f"Missed {len(true_rels[batch])} relations")
+        wrong += len(true_rels[batch])
+        print(f"correct: {correct}, wrong: {wrong}")
+        all_correct += correct
+        all_wrong += wrong
+    return all_correct, all_wrong
 
 
 # IMPLEMENTATION IDEA:

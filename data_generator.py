@@ -13,7 +13,6 @@ from utils import (
     add_span_ner_labels,
     align_labels,
     split_texts,
-    extract_relations,
     list_relations,
 )
 
@@ -52,7 +51,7 @@ class data_generator:
         )
 
         # Split texts into batches of 400
-        dataset = dataset.map(split_texts, batched=True)
+        # dataset = dataset.map(split_texts, batched=True)
 
         # Tokenize and align labels
         dataset = dataset.map(self.tokenize_and_align_labels, batched=True)
@@ -108,20 +107,30 @@ class data_generator:
 
     def tokenize_relations(self, dataset):
         all_relations = []
-        all_labels = []
+        # all_labels = []
         for relations in dataset["relations"]:
             rel_in_text = []
-            label_in_text = []
+            # label_in_text = []
             for relation in relations:
                 head, child, label = relation
-                head = self.tokenizer(head, truncation=False)["input_ids"]
-                child = self.tokenizer(child, truncation=False)["input_ids"]
-                label_in_text.append(label)
-                rel_in_text.append([head, child])
+                head = self.tokenizer.convert_ids_to_tokens(
+                    self.tokenizer(head, truncation=False)["input_ids"]
+                )
+                head = filter(lambda token: token != "[CLS]" and token != "[SEP]", head)
+                # head = [token for token in head if token ]
+                head = " ".join(head)
+                child = self.tokenizer.convert_ids_to_tokens(
+                    self.tokenizer(child, truncation=False)["input_ids"]
+                )
+                child = filter(lambda token: token != "[CLS]" and token != "[SEP]", child)
+                child = " ".join(child)
+                # label_in_text.append(label)
+                rel_in_text.append((head, child, label))
             all_relations.append(rel_in_text)
-            all_labels.append(label_in_text)
+            # all_labels.append(label_in_text)
 
-        return {"relations": all_relations, "rel_labels": all_labels}
+        return {"relations": all_relations}
+        # return {"relations": all_relations, "rel_labels": all_labels}
 
     def generate_re_dataset(self):
         # dataset = self.generate_ner_dataset(remove_labels=False)
