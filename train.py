@@ -129,5 +129,5 @@ if __name__ == "__main__":
     re = rel_extractor()
     train_set, eval_set = cv_split(dataset=dataset, fold=3)
     predicted_relations = re.extract_relations(eval_set)
-    correct, wrong = calculate_score(eval_set["relations"], predicted_relations)
+    correct, wrong, scores_per_class = calculate_score(eval_set["relations"], predicted_relations)
     print(f"TOTAL: {correct} correct, {wrong} wrong")

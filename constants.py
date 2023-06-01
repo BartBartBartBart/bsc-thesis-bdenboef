@@ -41,3 +41,5 @@ LABEL_LIST = [
     "B-OPERATION",
     "I-OPERATION",
 ]
+
+COREFERENCES = ["their", "he", "they", "his", "hers", "it"]

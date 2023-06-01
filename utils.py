@@ -242,31 +242,45 @@ def set_seeds(seed=1234):
 def calculate_score(true_rels, predictions):
     all_correct = 0
     all_wrong = 0
+
+    scores_per_class = {
+        "ASSOCIATION1": [0, 0, 0],
+        "ASSOCIATION1..*": [0, 0, 0],
+        "ASSOCIATION*": [0, 0, 0],
+        "ATTRIBUTE": [0, 0, 0],
+        "SUBTYPE": [0, 0, 0],
+        "OPERATION": [0, 0, 0],
+        "COMPOSITION": [0, 0, 0],
+        "AGGREGATION": [0, 0, 0],
+        "SPAN": [0, 0, 0],
+        "COREF": [0, 0, 0],
+    }
+
     for batch, prediction in enumerate(predictions):
         print(f"Batch {batch}")
         wrong = 0
         correct = 0
         for pred in prediction:
             if pred in true_rels[batch]:
-                index = true_rels[batch].index(pred)
-                print(pred, true_rels[batch][index])
+                # index = true_rels[batch].index(pred)
+                # print(pred, true_rels[batch][index])
+                scores_per_class[pred[2]][0] += 1
                 true_rels[batch].remove(pred)
                 correct += 1
             else:
+                print("Wrong prediction: ", pred)
+                scores_per_class[pred[2]][1] += 1
                 wrong += 1
         print("Missed", true_rels[batch])
         print(f"Missed {len(true_rels[batch])} relations")
+        for missed_relation in true_rels[batch]:
+            scores_per_class[missed_relation[2]][2] += 1
         wrong += len(true_rels[batch])
         print(f"correct: {correct}, wrong: {wrong}")
         all_correct += correct
         all_wrong += wrong
-    return all_correct, all_wrong
 
+    print("Relation  -  Correct pred  -  Wrong pred  -  Missed pred")
+    print(scores_per_class)
 
-# IMPLEMENTATION IDEA:
-# list of spans (so can be single words) with ID
-# list of relations of shape ("SPAN1", "SPAN2", "LABEL")
-# Per sentence? When do I tokenize?
-# Would this be a good input structure?
-# "This is a sentence" -> [[rel1],[rel2]]
-# and so on..
+    return all_correct, all_wrong, scores_per_class

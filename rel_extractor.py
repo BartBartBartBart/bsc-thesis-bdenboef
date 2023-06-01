@@ -1,7 +1,7 @@
 # rel_extractor
 
 from data_generator import load_tokenizer
-from constants import ID2LABEL
+from constants import ID2LABEL, COREFERENCES
 
 
 class rel_extractor:
@@ -17,6 +17,7 @@ class rel_extractor:
             index = 0
             subtype = True
             classes_in_sentence = []
+            first_class = None
             for entity, label in zip(entities, labels):
                 # print(entity, label)
                 # Apply heuristics
@@ -24,11 +25,20 @@ class rel_extractor:
                 # Rule for extracting association relations
                 if label == "ASSOCIATION":
                     subtype = False
+                    skip_first = False
                     # print(entity)
-                    if index > 0:
+                    if index > 1:
                         i = index
+                        if (
+                            entities[i - 1] == "and" or entities[i - 1] == "or" or entities[i - 1] == ","
+                        ) and labels[i - 2] != "ASSOCIATION":
+                            skip_first = True
                         while i > 0 and entities[i - 1] != ".":
                             if labels[i - 1] == "CLASS":
+                                if skip_first:
+                                    i -= 1
+                                    skip_first = False
+                                    continue
                                 # Check if last char is s for mulitplicity
                                 if entities[i - 1][-1] == "s":
                                     # print([entities[i - 1], entity, "ASSOCIATION1..*"])
@@ -53,19 +63,17 @@ class rel_extractor:
 
                 # For subtypes
                 if label == "CLASS":
-                    classes_in_sentence.append(index)
+                    classes_in_sentence.append(entity)
 
                 # If no association within this sentence, create subtype relations
                 if entity == ".":
                     if subtype:
                         for class_entity in classes_in_sentence:
-                            if entities[class_entity] != entities[classes_in_sentence[0]]:
-                                relations_in_batch.append(
-                                    [entities[class_entity], entities[classes_in_sentence[0]], "SUBTYPE"]
-                                )
-                else:
-                    classes_in_sentence = []
-                    subtype = True
+                            if class_entity != classes_in_sentence[0]:
+                                relations_in_batch.append([class_entity, classes_in_sentence[0], "SUBTYPE"])
+                    else:
+                        classes_in_sentence = []
+                        subtype = True
 
                 # Attribute
                 if label == "ATTRIBUTE":
@@ -73,6 +81,9 @@ class rel_extractor:
                         i = index
                         while i > 0 and entities[i - 1] != ".":
                             if labels[i - 1] == "CLASS":
+                                if i > 2 and entities[i - 3] == "in":
+                                    i -= 1
+                                    continue
                                 relations_in_batch.append([entity, entities[i - 1], "ATTRIBUTE"])
                                 break
                             i -= 1
@@ -83,7 +94,28 @@ class rel_extractor:
                         i = index
                         while i > 0 and entities[i - 1] != ".":
                             if labels[i - 1] == "CLASS":
+                                if i > 2 and entities[i - 3] == "in":
+                                    i -= 1
+                                    continue
                                 relations_in_batch.append([entities[i - 1], entity, "OPERATION"])
+                                break
+                            i -= 1
+
+                # Coreference resolution
+                if entity in COREFERENCES:
+                    if index > 0:
+                        i = index
+                        first_class_found = False
+                        while i > 0 and entities[i - 1] != ".":
+                            if labels[i - 1] == "CLASS":
+                                if not first_class_found:
+                                    first_class_found = True
+                                    i -= 1
+                                    continue
+                                if i > 2 and entities[i - 3] == "in":
+                                    i -= 1
+                                    continue
+                                relations_in_batch.append([entity, entities[i - 1], "COREF"])
                                 break
                             i -= 1
 
