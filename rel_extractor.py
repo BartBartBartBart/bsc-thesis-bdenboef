@@ -8,9 +8,9 @@ class rel_extractor:
     def __init__(self):
         self.relations = []
 
-    def extract_relations(self, dataset):
+    def extract_relations(self, input_ids, ner_predictions):
         # Combine broken up entities
-        all_entities, all_labels = self.combine_entities(dataset)
+        all_entities, all_labels = self.combine_entities(input_ids, ner_predictions)
 
         for entities, labels in zip(all_entities, all_labels):
             relations_in_batch = []
@@ -50,7 +50,7 @@ class rel_extractor:
                                     break
                             i -= 1
                         i = index
-                        while i < len(labels) and entities[i + 1] != ".":
+                        while i < len(labels) - 1 and entities[i + 1] != ".":
                             if labels[i + 1] == "CLASS":
                                 # Check if last char is s for multiplicity
                                 if entities[i + 1][-1] == "s":
@@ -122,7 +122,7 @@ class rel_extractor:
                 if label == "Composition":
                     pass
 
-                    # Span, coref, aggregation?
+                    # Span, aggregation?
                     # Associations lopen nu nog over de hele tekst in principe, grens zetten bij zin
                     # idem voor attribute
 
@@ -132,10 +132,10 @@ class rel_extractor:
 
     # Combines the split up entities into the same entity
     # Returns a list of entities with corresponding list of labels
-    def combine_entities(self, dataset):
+    def combine_entities(self, input_ids, predictions):
         tokenizer = load_tokenizer()
-        input_ids = dataset["input_ids"]
-        predictions = dataset["labels"]
+        # input_ids = dataset["input_ids"]
+        # predictions = ner_predictions
         all_entities = []
         all_labels = []
 
@@ -203,8 +203,12 @@ class rel_extractor:
             return entity
         i = index
         if i < len(prediction):
-            while prediction[i + 1] != -100 and (
-                ID2LABEL[prediction[i + 1]] == f"I-{label}" or ID2LABEL[prediction[i + 1]] == f"B-{label}"
+            while (
+                i < len(prediction) - 1
+                and prediction[i + 1] != -100
+                and (
+                    ID2LABEL[prediction[i + 1]] == f"I-{label}" or ID2LABEL[prediction[i + 1]] == f"B-{label}"
+                )
             ):
                 # print(ID2LABEL[prediction[i + 1]], tokenizer.convert_ids_to_tokens(token[i + 1]))
                 if ID2LABEL[prediction[i + 1]] == f"B-{label}":

@@ -170,24 +170,33 @@ def compute_metrics(eval_preds):
 
 def cv_split(dataset, fold):
     if fold == 0:
-        train_split = [0, 1]
-        eval_split = [2, 3, 4, 5, 6]
+        train_split = [0, 1, 2, 3]
+        eval_split = [4, 5, 6]
+        test_split = [7, 8]
     elif fold == 1:
-        train_split = [2, 3]
-        eval_split = [0, 1, 4, 5, 6]
+        train_split = [7, 8, 0, 1]
+        eval_split = [2, 3, 4]
+        test_split = [5, 6]
     elif fold == 2:
-        train_split = [4, 5]
-        eval_split = [0, 1, 2, 3, 6]
+        train_split = [5, 6, 7, 8]
+        eval_split = [0, 1, 2]
+        test_split = [3, 4]
     elif fold == 3:
-        train_split = [5, 6]
-        eval_split = [0, 1, 2, 3, 4, 6, 8, 9, 10]
+        train_split = [3, 4, 5, 6]
+        # eval_split = [7 ,8, 0]
+        eval_split = [5, 7]
+        test_split = [0, 1]
 
     # create new train dataset
-    train_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in train_split))
+    train_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in train_split))
 
     # create new eval dataset
-    eval_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i not in eval_split))
-    return train_set, eval_set
+    eval_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in eval_split))
+
+    # create net test dataset
+    test_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in test_split))
+
+    return train_set, eval_set, test_set
 
 
 def list_relations(dataset):
@@ -284,3 +293,11 @@ def calculate_score(true_rels, predictions):
     print(scores_per_class)
 
     return all_correct, all_wrong, scores_per_class
+
+
+def print_reports(reports):
+    for report in reports:
+        for x in reports:
+            print(x)
+            # for y in reports[x]:
+            #     print (y,':',reports[x][y])

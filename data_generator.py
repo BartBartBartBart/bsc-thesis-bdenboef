@@ -21,7 +21,7 @@ class data_generator:
     def __init__(self):
         self.tokenizer = load_tokenizer()
 
-    def generate_ner_dataset(self, remove_labels=True):
+    def generate_ner_dataset(self, remove_labels=False):
         dataset = load_data()
 
         # Perform preprocessing
@@ -59,6 +59,9 @@ class data_generator:
         if remove_labels:
             # Remove some columns
             dataset = dataset.remove_columns(["tokens"])
+
+        dataset = dataset.map(list_relations, batched=True)
+        dataset = dataset.map(self.tokenize_relations, batched=True)
 
         return dataset
 
