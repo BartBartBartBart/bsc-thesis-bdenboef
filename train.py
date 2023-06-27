@@ -8,9 +8,9 @@ from sklearn.metrics import classification_report
 
 from model import NER_Model
 from NER_Trainer import NER_Trainer
-from data_generator import data_generator
+from data_generator import data_generator, list_labels
 from rel_extractor import rel_extractor
-from utils import cv_split, compute_metrics, set_seeds, calculate_score, print_reports
+from utils import cv_split, compute_metrics, set_seeds, calculate_score, print_reports, count_relations
 from constants import LABEL_LIST, ID2LABEL
 
 # Parse arguments from command line
@@ -37,7 +37,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--weight-decay",
-    dest="train_batch_size",
+    dest="weight_decay",
     default=0.01,
     type=float,
     help="Number of batches in the train set",
@@ -62,16 +62,16 @@ def train_ner_model(
 ):
     set_seeds(seed=42)
 
-    ner_model = NER_Model(
-        learning_rate,
-        per_device_train_batch_size,
-        per_device_eval_batch_size,
-        num_train_epochs,
-        weight_decay,
-        warmup_steps,
-        load_best_model_at_end,
-        logging_steps,
-    )
+    # ner_model = NER_Model(
+    #     learning_rate,
+    #     per_device_train_batch_size,
+    #     per_device_eval_batch_size,
+    #     num_train_epochs,
+    #     weight_decay,
+    #     warmup_steps,
+    #     load_best_model_at_end,
+    #     logging_steps,
+    # )
 
     generator = data_generator()
     dataset = generator.generate_ner_dataset()
@@ -79,11 +79,25 @@ def train_ner_model(
     ner_scores = []
     ner_reports = []
     re_scores = []
+    avg_f1 = 0
 
+    # for i in [3]:
     for i in [0, 1, 2, 3]:
         print(f"Fold {i}")
+
+        ner_model = NER_Model(
+            learning_rate,
+            per_device_train_batch_size,
+            per_device_eval_batch_size,
+            num_train_epochs,
+            weight_decay,
+            warmup_steps,
+            load_best_model_at_end,
+            logging_steps,
+        )
+
         # Cross-validation split
-        train_set, eval_set, test_set = cv_split(dataset=dataset, fold=i)
+        train_set, eval_set = cv_split(dataset=dataset, fold=i)
 
         trainer = NER_Trainer(
             model=ner_model.model,
@@ -100,13 +114,10 @@ def train_ner_model(
         trainer.train()
 
         # evaluate predictions on test set
-        ner_predictions, label_ids, ner_metrics = trainer.predict(test_dataset=test_set)
+        ner_predictions, label_ids, ner_metrics = trainer.predict(test_dataset=eval_set)
 
         # Transform probabilities into predictions
         ner_predictions = np.argmax(ner_predictions, axis=2)
-
-        # print(len(label_ids[0]))
-        # print(len(ner_predictions[0]))
 
         # We remove all the values where the label is -100
         predictions = [
@@ -118,62 +129,72 @@ def train_ner_model(
             for prediction, label in zip(ner_predictions, label_ids)
         ]
 
-        # predictions = [ID2LABEL[pred] for pred in text for text in predictions]
-        # true_labels = [ID2LABEL[label] for label in true_labels]
-
-        # print(len(true_labels[0]))
-        # print(len(predictions[0]))
+        pred = []
+        truth = []
 
         for labels, preds in zip(true_labels, predictions):
-            results_per_class = classification_report(labels, preds)
-            ner_reports.append(results_per_class)
-        # print("ner_predictions", predictions)
-        # print("labels_ids", true_labels)
-        # print(metrics)
+            pred += preds
+            truth += labels
+            # results_per_class = classification_report(labels, preds)
+            # ner_reports.append(results_per_class)
+
+        results_per_class = classification_report(truth, pred, labels=np.unique(truth))
+        ner_reports.append(results_per_class)
 
         ner_scores.append(ner_metrics)
+        avg_f1 += ner_metrics["test_f1"]
 
-        # RELATION EXTRACTION
+        # list_labels(eval_set[0]["input_ids"], ner_predictions[0], eval_set["labels"][0])
+        # list_labels(eval_set[1]["input_ids"], ner_predictions[1], eval_set["labels"][1])
+        # list_labels(eval_set[2]["input_ids"], ner_predictions[2], eval_set["labels"][2])
+
+        # print(len(eval_set["labels"][0]))
+        # print(len(eval_set["labels"][1]))
+        # print(len(ner_predictions[0]))
+        # print(len(ner_predictions[1]))
+
+        # # RELATION EXTRACTION
         re = rel_extractor()
-        predicted_relations = re.extract_relations(test_set["input_ids"], predictions)
+        predicted_relations = re.extract_relations(eval_set["input_ids"], ner_predictions)
         total_correct, total_wrong, scores_per_class = calculate_score(
-            test_set["relations"], predicted_relations
+            eval_set["relations"], predicted_relations
         )
         # print(scores_per_class)
         re_scores.append(scores_per_class)
 
-    return ner_scores, ner_reports, re_scores
+    return ner_scores, ner_reports, re_scores, avg_f1 / 4
+    # return 1,1,1
 
 
 if __name__ == "__main__":
     with wandb.init(project="ner-bert"):
 
-        # For hyperparameter optimization with wandb
-        # config = wandb.config
+        # #     # For hyperparameter optimization with wandb
+        #     config = wandb.config
 
-        # train_ner_model(
-        #     learning_rate=config.learning_rate,
-        #     per_device_train_batch_size=config.per_device_train_batch_size,
-        #     per_device_eval_batch_size=config.per_device_eval_batch_size,
-        #     num_train_epochs=config.num_train_epochs,
-        #     weight_decay=config.weight_decay,
-        #     warmup_steps=config.warmup_steps,
-        #     load_best_model_at_end=True,
-        #     logging_steps=10
-        # )
+        #     train_ner_model(
+        #         learning_rate=config.learning_rate,
+        #         per_device_train_batch_size=config.per_device_train_batch_size,
+        #         per_device_eval_batch_size=config.per_device_eval_batch_size,
+        #         num_train_epochs=config.num_train_epochs,
+        #         weight_decay=config.weight_decay,
+        #         warmup_steps=config.warmup_steps,
+        #         load_best_model_at_end=True,
+        #         logging_steps=10
+        #     )
 
-        # Normal Run
+        #     # Normal Run
 
         args = parser.parse_args()
 
         start = time.time()
 
-        ner_scores, ner_reports, re_scores = train_ner_model(
+        ner_scores, ner_reports, re_scores, avg_f1 = train_ner_model(
             learning_rate=args.learning_rate,
             per_device_train_batch_size=args.per_device_train_batch_size,
             per_device_eval_batch_size=args.per_device_eval_batch_size,
             num_train_epochs=args.epochs,
-            weight_decay=args.epochs,
+            weight_decay=args.weight_decay,
             warmup_steps=args.warmup_steps,
             load_best_model_at_end=True,
             logging_steps=args.logging_steps,
@@ -181,23 +202,54 @@ if __name__ == "__main__":
 
         end = time.time()
 
-        print("NER results per fold:")
-        print(ner_scores)
-        for report in ner_reports:
-            print(report)
-        # print_reports(ner_reports)
-        print("RE results per fold:")
-        # print(re_scores)
-        for re_score in re_scores:
-            print(re_score)
-        print(len(ner_reports))
+        print(f"Average F1 score: {avg_f1}")
+        print(f"The run took {end-start} seconds.")
 
-    print(f"Took {end-start} seconds.")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
+    print("A")
 
-    # generator = data_generator()
+    print("NER results per fold:")
+    # print(ner_scores)
+    for report in ner_reports:
+        print(report)
+    # print_reports(ner_reports)
+    print("RE results per fold:")
+    # print(re_scores)
+    for re_score in re_scores:
+        print(re_score)
+
+    # print(f"Took {end-start} seconds.")
+
+    # generator = data_generator()had
     # dataset = generator.generate_re_dataset()
     # re = rel_extractor()
-    # train_set, eval_set, test_set = cv_split(dataset=dataset, fold=3)
+    # train_set, eval_set = cv_split(dataset=dataset, fold=3)
     # print(eval_set["relations"])
     # predicted_relations = re.extract_relations(eval_set["input_ids"], eval_set["labels"])
     # correct, wrong, scores_per_class = calculate_score(eval_set["relations"], predicted_relations)

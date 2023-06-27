@@ -25,13 +25,6 @@ def remove_rejected_texts(dataset):
     return dataset
 
 
-def list_labels(dataset, text_nr):
-    for text, label in zip(dataset["train"][text_nr]["tokens"], dataset["train"][text_nr]["labels"]):
-        if label > -100:
-            label = ID2LABEL[label]
-        print(f"{text}, {label}")
-
-
 # Give all tokens the label "O"
 def add_token_labels(text):
     for tokens in text["tokens"]:
@@ -170,22 +163,22 @@ def compute_metrics(eval_preds):
 
 def cv_split(dataset, fold):
     if fold == 0:
-        train_split = [0, 1, 2, 3]
-        eval_split = [4, 5, 6]
-        test_split = [7, 8]
+        train_split = [0, 1, 2, 3, 4, 5]
+        eval_split = [6, 7, 8]
+        # test_split = [7, 8]
     elif fold == 1:
-        train_split = [7, 8, 0, 1]
-        eval_split = [2, 3, 4]
-        test_split = [5, 6]
+        train_split = [7, 8, 0, 1, 2, 3]
+        eval_split = [4, 5, 6]
+        # test_split = [5, 6]
     elif fold == 2:
-        train_split = [5, 6, 7, 8]
-        eval_split = [0, 1, 2]
-        test_split = [3, 4]
+        train_split = [5, 6, 7, 8, 0, 1]
+        eval_split = [2, 3, 4]
+        # test_split = [3, 4]
     elif fold == 3:
-        train_split = [3, 4, 5, 6]
-        # eval_split = [7 ,8, 0]
-        eval_split = [5, 7]
-        test_split = [0, 1]
+        train_split = [3, 4, 5, 6, 7, 8]
+        # eval_split = [6 ,8]
+        eval_split = [0, 1, 2]
+        # test_split = [0, 1]
 
     # create new train dataset
     train_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in train_split))
@@ -194,9 +187,9 @@ def cv_split(dataset, fold):
     eval_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in eval_split))
 
     # create net test dataset
-    test_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in test_split))
+    # test_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in test_split))
 
-    return train_set, eval_set, test_set
+    return train_set, eval_set  # , test_set
 
 
 def list_relations(dataset):
@@ -237,6 +230,26 @@ def list_relations(dataset):
 #     dataset = dataset.map(list_relations, batched=True)
 #     print(dataset["train"][0]["relations"])
 #     return dataset
+
+
+def count_relations(dataset):
+    rel_counts = {
+        "ASSOCIATION1": 0,
+        "ASSOCIATION1..*": 0,
+        "ASSOCIATION*": 0,
+        "ATTRIBUTE": 0,
+        "SUBTYPE": 0,
+        "OPERATION": 0,
+        "COMPOSITION": 0,
+        "AGGREGATION": 0,
+        "SPAN": 0,
+        "COREF": 0,
+    }
+    for relations in dataset["train"]["relations"]:
+        for rel in relations:
+            rel_counts[rel[2]] += 1
+
+    return rel_counts
 
 
 def set_seeds(seed=1234):

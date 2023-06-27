@@ -119,7 +119,10 @@ class rel_extractor:
                                 break
                             i -= 1
 
-                if label == "Composition":
+                if label == "COMPOSITION":
+                    pass
+
+                if label == "AGGREGATION":
                     pass
 
                     # Span, aggregation?

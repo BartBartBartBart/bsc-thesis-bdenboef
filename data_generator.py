@@ -7,6 +7,7 @@ import pandas as pd
 import keras
 import numpy as np
 
+from constants import ID2LABEL
 from utils import (
     remove_rejected_texts,
     add_token_labels,
@@ -184,3 +185,15 @@ def load_data():
 
 def load_tokenizer():
     return BertTokenizerFast.from_pretrained("bert-base-uncased")
+
+
+def list_labels(tokens, labels, true_labels):
+    print(len(tokens))
+    print(len(labels))
+    tokenizer = load_tokenizer()
+    for text, label, truth in zip(tokens, labels, true_labels):
+        if label > -100:
+            label = ID2LABEL[label]
+        if truth > -100:
+            truth = ID2LABEL[truth]
+        print(f"{tokenizer.convert_ids_to_tokens(text)}, {label}, {truth}")
