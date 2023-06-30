@@ -21,7 +21,8 @@ class rel_extractor:
             for entity, label in zip(entities, labels):
                 # print(entity, label)
                 # Apply heuristics
-
+                if entity == "[PAD]":
+                    continue
                 # Rule for extracting association relations
                 if label == "ASSOCIATION":
                     subtype = False
@@ -63,17 +64,50 @@ class rel_extractor:
 
                 # For subtypes
                 if label == "CLASS":
-                    classes_in_sentence.append(entity)
+                    # classes_in_sentence.append(entity)
+                    subtype2 = True
+                    count = 0
+                    i = index
+                    potential_rels = []
+                    while subtype2 and i < len(labels):
+                        if labels[i + 1] == "CLASS":
+                            potential_rels.append(entities[i + 1])
+                            count += 1
+                            i += 1
+                        elif entities[i + 1] == "," or entities[i + 1] == "and":
+                            i += 1
+                            continue
+                        elif count >= 3:
+                            potential_rels.append(entity)
+                            break
+                        else:
+                            subtype2 = False
+                            potential_rels = []
+                            count = 0
+
+                    if subtype2 and potential_rels:
+                        if index > 0:
+                            i = index
+                            while i > 0 and entities[i - 1] != ".":
+                                if labels[i - 1] == "CLASS":
+                                    if i > 2 and entities[i - 3] == "in":
+                                        i -= 1
+                                        continue
+                                    for sub in potential_rels:
+                                        relations_in_batch.append([sub, entities[i - 1], "SUBTYPE"])
+                                    potential_rels = []
+                                    break
+                                i -= 1
 
                 # If no association within this sentence, create subtype relations
-                if entity == ".":
-                    if subtype:
-                        for class_entity in classes_in_sentence:
-                            if class_entity != classes_in_sentence[0]:
-                                relations_in_batch.append([class_entity, classes_in_sentence[0], "SUBTYPE"])
-                    else:
-                        classes_in_sentence = []
-                        subtype = True
+                # if entity == ".":
+                #     if subtype:
+                #         for class_entity in classes_in_sentence:
+                #             if class_entity != classes_in_sentence[0]:
+                #                 relations_in_batch.append([class_entity, classes_in_sentence[0], "SUBTYPE"])
+                #     else:
+                #         classes_in_sentence = []
+                #         subtype = True
 
                 # Attribute
                 if label == "ATTRIBUTE":

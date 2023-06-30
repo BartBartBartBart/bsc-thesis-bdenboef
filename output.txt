@@ -1,0 +1,76 @@
+
+NER results per fold:
+
+              precision    recall  f1-score   support
+
+           0       0.84      0.95      0.89       487
+           1       0.67      0.72      0.69       131
+           2       0.00      0.00      0.00        35
+           3       0.75      0.62      0.68        24
+           4       0.38      0.67      0.48         9
+           5       0.64      0.58      0.61        67
+           6       0.00      0.00      0.00        21
+           7       0.00      0.00      0.00        11
+           9       0.00      0.00      0.00         6
+          10       0.00      0.00      0.00         1
+
+    accuracy                           0.78       792
+   macro avg       0.33      0.35      0.34       792
+weighted avg       0.71      0.78      0.74       792
+
+              precision    recall  f1-score   support
+
+           0       0.88      0.93      0.91       472
+           1       0.66      0.81      0.73       116
+           2       0.67      0.07      0.12        29
+           3       0.50      0.55      0.52        40
+           4       0.71      0.60      0.65        25
+           5       0.50      0.49      0.50        51
+           6       0.40      0.18      0.25        11
+           7       1.00      0.17      0.29        18
+           8       0.00      0.00      0.00         7
+           9       0.00      0.00      0.00         3
+
+    accuracy                           0.78       772
+   macro avg       0.53      0.38      0.40       772
+weighted avg       0.78      0.78      0.76       772
+
+              precision    recall  f1-score   support
+
+           0       0.90      0.93      0.91       620
+           1       0.67      0.78      0.72       143
+           2       0.48      0.41      0.44        27
+           3       0.33      0.51      0.40        63
+           4       1.00      0.07      0.13        59
+           5       0.51      0.55      0.53        56
+           6       0.33      0.12      0.18        16
+           7       1.00      0.12      0.22        16
+           8       0.40      0.22      0.29         9
+           9       0.00      0.00      0.00         2
+
+    accuracy                           0.77      1011
+   macro avg       0.56      0.37      0.38      1011
+weighted avg       0.79      0.77      0.74      1011
+
+              precision    recall  f1-score   support
+
+           0       0.91      0.90      0.90       548
+           1       0.75      0.88      0.81       150
+           2       0.37      0.67      0.48        33
+           3       0.69      0.61      0.65        44
+           4       0.62      0.49      0.55        41
+           5       0.57      0.82      0.67        49
+           6       0.30      0.10      0.15        29
+           7       0.57      0.24      0.33        17
+           8       0.00      0.00      0.00        28
+
+    accuracy                           0.79       939
+   macro avg       0.53      0.52      0.51       939
+weighted avg       0.77      0.79      0.77       939
+
+RE results per fold:
+
+{'ASSOCIATION1': [24, 59, 66], 'ASSOCIATION1..*': [7, 12, 23], 'ASSOCIATION*': [0, 0, 8], 'ATTRIBUTE': [5, 13, 19], 'SUBTYPE': [0, 0, 9], 'OPERATION': [0, 0, 6], 'COMPOSITION': [0, 0, 2], 'AGGREGATION': [0, 0, 0], 'SPAN': [0, 0, 0], 'COREF': [2, 9, 9]}
+{'ASSOCIATION1': [18, 47, 50], 'ASSOCIATION1..*': [6, 13, 17], 'ASSOCIATION*': [0, 0, 4], 'ATTRIBUTE': [5, 23, 29], 'SUBTYPE': [0, 4, 7], 'OPERATION': [0, 0, 3], 'COMPOSITION': [0, 0, 0], 'AGGREGATION': [0, 0, 0], 'SPAN': [0, 0, 0], 'COREF': [2, 6, 2]}
+{'ASSOCIATION1': [8, 56, 44], 'ASSOCIATION1..*': [13, 25, 36], 'ASSOCIATION*': [0, 0, 1], 'ATTRIBUTE': [6, 69, 53], 'SUBTYPE': [0, 0, 16], 'OPERATION': [0, 0, 4], 'COMPOSITION': [0, 0, 0], 'AGGREGATION': [0, 0, 0], 'SPAN': [0, 0, 1], 'COREF': [0, 6, 3]}
+{'ASSOCIATION1': [31, 62, 24], 'ASSOCIATION1..*': [11, 20, 20], 'ASSOCIATION*': [0, 0, 1], 'ATTRIBUTE': [13, 23, 32], 'SUBTYPE': [5, 4, 26], 'OPERATION': [0, 0, 2], 'COMPOSITION': [0, 0, 0], 'AGGREGATION': [0, 0, 4], 'SPAN': [0, 0, 3], 'COREF': [1, 2, 11]}
