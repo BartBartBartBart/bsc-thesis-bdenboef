@@ -130,19 +130,19 @@ class rel_extractor:
                             i -= 1
 
                         i = index
-                        while (
-                            i < len(labels) - 1
-                            and entities[i + 1] != "."
-                            and entities[i + 1] != "!"
-                            and entities[i + 1] != "?"
-                        ):
-                            if labels[i + 1] == "CLASS":
-                                if i > 2 and entities[i + 3] == "in":
-                                    i += 1
-                                    continue
-                                relations_in_batch.append([entity, entities[i + 1], "ATTRIBUTE"])
-                                break
-                            i += 1
+                        # while (
+                        #     i < len(labels) - 1
+                        #     and entities[i + 1] != "."
+                        #     and entities[i + 1] != "!"
+                        #     and entities[i + 1] != "?"
+                        # ):
+                        #     if labels[i + 1] == "CLASS":
+                        #         if i > 2 and entities[i + 3] == "in":
+                        #             i += 1
+                        #             continue
+                        #         relations_in_batch.append([entity, entities[i + 1], "ATTRIBUTE"])
+                        #         break
+                        #     i += 1
 
                 # Operation
                 if label == "OPERATION":
@@ -163,19 +163,19 @@ class rel_extractor:
                             i -= 1
 
                         i = index
-                        while (
-                            i < len(labels) - 1
-                            and entities[i + 1] != "."
-                            and entities[i + 1] != "!"
-                            and entities[i + 1] != "?"
-                        ):
-                            if labels[i + 1] == "CLASS":
-                                if i > 2 and entities[i + 3] == "in":
-                                    i += 1
-                                    continue
-                                relations_in_batch.append([entity, entities[i + 1], "OPERATION"])
-                                break
-                            i += 1
+                        # while (
+                        #     i < len(labels) - 1
+                        #     and entities[i + 1] != "."
+                        #     and entities[i + 1] != "!"
+                        #     and entities[i + 1] != "?"
+                        # ):
+                        #     if labels[i + 1] == "CLASS":
+                        #         if i > 2 and entities[i + 3] == "in":
+                        #             i += 1
+                        #             continue
+                        #         relations_in_batch.append([entity, entities[i + 1], "OPERATION"])
+                        #         break
+                        #     i += 1
 
                 # Coreference resolution
                 if entity in COREFERENCES:
