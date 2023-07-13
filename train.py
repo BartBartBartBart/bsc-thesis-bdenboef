@@ -71,7 +71,7 @@ def train_ner_model(
     set_seeds(seed=42)
 
     generator = data_generator()
-    dataset = generator.generate_ner_dataset()
+    dataset = generator.generate_dataset()
 
     ner_scores = []
     ner_reports = []
@@ -147,13 +147,6 @@ def train_ner_model(
         # list_labels(eval_set[0]["input_ids"], ner_predictions[0], eval_set["labels"][0])
         # list_labels(eval_set[1]["input_ids"], ner_predictions[1], eval_set["labels"][1])
         # list_labels(eval_set[2]["input_ids"], ner_predictions[2], eval_set["labels"][2])
-
-        # with open("predictions.txt", "a") as f:
-        #     f.write("\n".join(["NER predictions:"]))
-        #     for text in ner_predictions:
-        #         f.write("\n".join([str(text)]))
-        #     f.write("\n".join(["Input ids:"]))
-        #     f.write("\n".join([str(eval_set["input_ids"])]))
 
         # # RELATION EXTRACTION
         re = rel_extractor()

@@ -1,39 +1,60 @@
-# rel_extractor
+# Relation Extraction Rules
+# In this file, raw tokens are combined into full entities
+# based on the predicted NER labels.
+# Then, the RE rules are applied
 
 from data_generator import load_tokenizer
 from constants import ID2LABEL, COREFERENCES
 
 
 class rel_extractor:
+    """
+    Wrapper class for the rule-based RE method.
+    Contains methods:
+    - extract_relatiosn(input_ids, ner_predictions)
+    - combine_entities(input_ids, predictions)
+    - find_full_entity(label, index, tokenizer, prediction, tok, token)
+    """
+
     def __init__(self):
+        # Contains extracted relations
         self.relations = []
 
     def extract_relations(self, input_ids, ner_predictions):
-        # Combine broken up entities
-        all_entities, all_labels = self.combine_entities(input_ids, ner_predictions)
+        """
+        Applies the RE rules on the combined entities. 
+        Returns the extracted relations.
+        """
+
+        # Combine broken up entities based on NER predictions
+        all_entities, all_labels = self.combine_entities(
+            input_ids, ner_predictions
+        )
 
         for entities, labels in zip(all_entities, all_labels):
             relations_in_batch = []
             index = 0
-            subtype = True
-            classes_in_sentence = []
-            first_class = None
             for entity, label in zip(entities, labels):
-                # print(entity, label)
                 # Apply heuristics
+
+                # Do not use entities that are padding
                 if entity == "[PAD]":
                     continue
+
                 # Rule for extracting association relations
                 if label == "ASSOCIATION":
-                    subtype = False
                     skip_first = False
-                    # print(entity)
+
                     if index > 1:
                         i = index
                         if (
-                            entities[i - 1] == "and" or entities[i - 1] == "or" or entities[i - 1] == ","
+                            entities[i - 1] == "and" 
+                            or entities[i - 1] == "or" 
+                            or entities[i - 1] == ","
                         ) and labels[i - 2] != "ASSOCIATION":
                             skip_first = True
+
+                        # Search for correct class on the left side
                         while i > 0 and entities[i - 1] != ".":
                             if labels[i - 1] == "CLASS":
                                 if skip_first:
@@ -42,52 +63,63 @@ class rel_extractor:
                                     continue
                                 # Check if last char is s for mulitplicity
                                 if entities[i - 1][-1] == "s":
-                                    # print([entities[i - 1], entity, "ASSOCIATION1..*"])
-                                    relations_in_batch.append([entities[i - 1], entity, "ASSOCIATION1..*"])
+                                    relations_in_batch.append(
+                                        [entities[i - 1], entity, "ASSOCIATION1..*"]
+                                    )
                                     break
                                 else:
-                                    # print([entities[i - 1], entity, "ASSOCIATION1"])
-                                    relations_in_batch.append([entities[i - 1], entity, "ASSOCIATION1"])
+                                    relations_in_batch.append(
+                                        [entities[i - 1], entity, "ASSOCIATION1"]
+                                    )
                                     break
                             i -= 1
+
+                        # Search for correct class on the right side
                         i = index
                         while i < len(labels) - 1 and entities[i + 1] != ".":
                             if labels[i + 1] == "CLASS":
                                 # Check if last char is s for multiplicity
                                 if entities[i + 1][-1] == "s":
-                                    relations_in_batch.append([entity, entities[i + 1], "ASSOCIATION1..*"])
+                                    relations_in_batch.append(
+                                        [entity, entities[i + 1], "ASSOCIATION1..*"]
+                                    )
                                     break
                                 else:
-                                    relations_in_batch.append([entity, entities[i + 1], "ASSOCIATION1"])
+                                    relations_in_batch.append(
+                                        [entity, entities[i + 1], "ASSOCIATION1"]
+                                    )
                                     break
                             i += 1
 
-                # For subtypes
+                # Rule for extracting subtype relations
                 if label == "CLASS":
-                    # classes_in_sentence.append(entity)
-                    subtype2 = True
+                    subtype = True
                     count = 0
                     i = index
                     potential_rels = []
+
                     # Check if this is a listing of 3 or more classes
-                    while subtype2 and i < len(labels):
+                    while subtype and i < len(labels):
                         if labels[i + 1] == "CLASS":
                             potential_rels.append(entities[i + 1])
                             count += 1
                             i += 1
-                        elif entities[i + 1] == "," or entities[i + 1] == "and":
+                        elif (
+                            entities[i + 1] == ","
+                            or entities[i + 1] == "and"
+                        ):
                             i += 1
                             continue
                         elif count >= 3:
                             potential_rels.append(entity)
                             break
                         else:
-                            subtype2 = False
+                            subtype = False
                             potential_rels = []
                             count = 0
 
                     # If listing, add relations subtype
-                    if subtype2 and potential_rels:
+                    if subtype and potential_rels:
                         if index > 0:
                             i = index
                             while i > 0 and entities[i - 1] != ".":
@@ -96,25 +128,20 @@ class rel_extractor:
                                         i -= 1
                                         continue
                                     for sub in potential_rels:
-                                        relations_in_batch.append([sub, entities[i - 1], "SUBTYPE"])
+                                        relations_in_batch.append(
+                                            [sub, entities[i - 1], "SUBTYPE"]
+                                        )
                                     potential_rels = []
                                     break
                                 i -= 1
 
-                # If no association within this sentence, create subtype relations
-                # if entity == ".":
-                #     if subtype:
-                #         for class_entity in classes_in_sentence:
-                #             if class_entity != classes_in_sentence[0]:
-                #                 relations_in_batch.append([class_entity, classes_in_sentence[0], "SUBTYPE"])
-                #     else:
-                #         classes_in_sentence = []
-                #         subtype = True
 
-                # Attribute
+                # RE rule for attribute relations
                 if label == "ATTRIBUTE":
                     if index > 0:
                         i = index
+
+                        # Search for correct class on the left side
                         while (
                             i > 0
                             and entities[i - 1] != "."
@@ -125,29 +152,19 @@ class rel_extractor:
                                 if i > 2 and entities[i - 3] == "in":
                                     i -= 1
                                     continue
-                                relations_in_batch.append([entity, entities[i - 1], "ATTRIBUTE"])
+                                relations_in_batch.append(
+                                    [entity, entities[i - 1], "ATTRIBUTE"]
+                                )
                                 break
                             i -= 1
 
-                        i = index
-                        # while (
-                        #     i < len(labels) - 1
-                        #     and entities[i + 1] != "."
-                        #     and entities[i + 1] != "!"
-                        #     and entities[i + 1] != "?"
-                        # ):
-                        #     if labels[i + 1] == "CLASS":
-                        #         if i > 2 and entities[i + 3] == "in":
-                        #             i += 1
-                        #             continue
-                        #         relations_in_batch.append([entity, entities[i + 1], "ATTRIBUTE"])
-                        #         break
-                        #     i += 1
 
-                # Operation
+                # RE rule for operation relations
                 if label == "OPERATION":
                     if index > 0:
                         i = index
+
+                        # Search for correct class on the left side 
                         while (
                             i > 0
                             and entities[i - 1] != "."
@@ -158,26 +175,14 @@ class rel_extractor:
                                 if i > 2 and entities[i - 3] == "in":
                                     i -= 1
                                     continue
-                                relations_in_batch.append([entities[i - 1], entity, "OPERATION"])
+                                relations_in_batch.append(
+                                    [entities[i - 1], entity, "OPERATION"]
+                                )
                                 break
                             i -= 1
 
-                        i = index
-                        # while (
-                        #     i < len(labels) - 1
-                        #     and entities[i + 1] != "."
-                        #     and entities[i + 1] != "!"
-                        #     and entities[i + 1] != "?"
-                        # ):
-                        #     if labels[i + 1] == "CLASS":
-                        #         if i > 2 and entities[i + 3] == "in":
-                        #             i += 1
-                        #             continue
-                        #         relations_in_batch.append([entity, entities[i + 1], "OPERATION"])
-                        #         break
-                        #     i += 1
 
-                # Coreference resolution
+                # RE rule for coreference resolution
                 if entity in COREFERENCES:
                     if index > 0:
                         i = index
@@ -191,30 +196,26 @@ class rel_extractor:
                                 if i > 2 and entities[i - 3] == "in":
                                     i -= 1
                                     continue
-                                relations_in_batch.append([entity, entities[i - 1], "COREF"])
+                                relations_in_batch.append(
+                                    [entity, entities[i - 1], "COREF"]
+                                )
                                 break
                             i -= 1
-
-                if label == "COMPOSITION":
-                    pass
-
-                if label == "AGGREGATION":
-                    pass
-
-                    # Span, aggregation?
-                    # Associations lopen nu nog over de hele tekst in principe, grens zetten bij zin
-                    # idem voor attribute
 
                 index += 1
             self.relations.append(relations_in_batch)
         return self.relations
 
-    # Combines the split up entities into the same entity
-    # Returns a list of entities with corresponding list of labels
+
     def combine_entities(self, input_ids, predictions):
+        """
+        Turns list of raw subtokens with their predictions 
+        into full entities, using the BIO tagging scheme.
+        Returns lists of entities and list of corresponding
+        labels. 
+        """
+
         tokenizer = load_tokenizer()
-        # input_ids = dataset["input_ids"]
-        # predictions = ner_predictions
         all_entities = []
         all_labels = []
 
@@ -222,50 +223,56 @@ class rel_extractor:
             entities_in_batch = []
             labels_in_batch = []
             index = 0
-            for tok, pred in zip(token, prediction):
-                if pred != -100:
-                    if ID2LABEL[pred] == "O":
-                        entities_in_batch.append(tokenizer.convert_ids_to_tokens(tok))
-                        labels_in_batch.append(ID2LABEL[pred])
 
-                    if ID2LABEL[pred] == "B-CLASS" and tokenizer.convert_ids_to_tokens(tok)[0] != "#":
-                        entity = self.find_full_entity("CLASS", index, tokenizer, prediction, tok, token)
+            # For each token, if it has a B tag,
+            # search for the full entity and combine.
+            for tok, pred in zip(token, prediction):
+                if (
+                    pred != -100
+                    and tokenizer.convert_ids_to_tokens(tok)[0] != "#"
+                ):
+                    if ID2LABEL[pred] == "O":
+                        entities_in_batch.append(
+                            tokenizer.convert_ids_to_tokens(tok)
+                        )
+                        labels_in_batch.append(
+                            ID2LABEL[pred]
+                        )
+
+                    if ID2LABEL[pred] == "B-CLASS":
+                        entity = self.find_full_entity(
+                            "CLASS", index, tokenizer, prediction, tok, token
+                        )
                         entities_in_batch.append(entity)
                         labels_in_batch.append("CLASS")
 
-                    if ID2LABEL[pred] == "B-ATTRIBUTE" and tokenizer.convert_ids_to_tokens(tok)[0] != "#":
-                        entity = self.find_full_entity("ATTRIBUTE", index, tokenizer, prediction, tok, token)
+                    if ID2LABEL[pred] == "B-ATTRIBUTE":
+                        entity = self.find_full_entity(
+                            "ATTRIBUTE", index, tokenizer, prediction, tok, token
+                        )
                         entities_in_batch.append(entity)
                         labels_in_batch.append("ATTRIBUTE")
 
-                    if ID2LABEL[pred] == "B-ASSOCIATION" and tokenizer.convert_ids_to_tokens(tok)[0] != "#":
+                    if ID2LABEL[pred] == "B-ASSOCIATION":
                         entity = self.find_full_entity(
                             "ASSOCIATION", index, tokenizer, prediction, tok, token
                         )
                         entities_in_batch.append(entity)
                         labels_in_batch.append("ASSOCIATION")
 
-                    if ID2LABEL[pred] == "B-SYSTEM" and tokenizer.convert_ids_to_tokens(tok)[0] != "#":
-                        entity = self.find_full_entity("SYSTEM", index, tokenizer, prediction, tok, token)
+                    if ID2LABEL[pred] == "B-SYSTEM":
+                        entity = self.find_full_entity(
+                            "SYSTEM", index, tokenizer, prediction, tok, token
+                        )
                         entities_in_batch.append(entity)
                         labels_in_batch.append("SYSTEM")
 
-                    if ID2LABEL[pred] == "B-OPERATION" and tokenizer.convert_ids_to_tokens(tok)[0] != "#":
-                        entity = self.find_full_entity("OPERATION", index, tokenizer, prediction, tok, token)
-                        entities_in_batch.append(entity)
-                        labels_in_batch.append("OPERATION")
-
-                    if ID2LABEL[pred] == "B-ENUMERATION" and tokenizer.convert_ids_to_tokens(tok)[0] != "#":
+                    if ID2LABEL[pred] == "B-OPERATION":
                         entity = self.find_full_entity(
-                            "ENUMERATION", index, tokenizer, prediction, tok, token
+                            "OPERATION", index, tokenizer, prediction, tok, token
                         )
                         entities_in_batch.append(entity)
-                        labels_in_batch.append("ENUMERATION")
-
-                    if ID2LABEL[pred] == "B-NOTE" and tokenizer.convert_ids_to_tokens(tok)[0] != "#":
-                        entity = self.find_full_entity("NOTE", index, tokenizer, prediction, tok, token)
-                        entities_in_batch.append(entity)
-                        labels_in_batch.append("NOTE")
+                        labels_in_batch.append("OPERATION")
 
                 index += 1
             all_entities.append(entities_in_batch)
@@ -273,29 +280,41 @@ class rel_extractor:
 
         return all_entities, all_labels
 
-    # Looks ahead in the labels to combine them into one entity
+
     def find_full_entity(self, label, index, tokenizer, prediction, tok, token):
+        """
+        Look ahead in the NER predictions to combine
+        tokens into entities, using the BIO tagging scheme.
+
+        """
         entity = tokenizer.convert_ids_to_tokens(tok)
+
         # Edge case for 's associations
         if entity == "'":
             entity += tokenizer.convert_ids_to_tokens(token[index + 1])
             return entity
+        
+        # Check if next token is also part of the same entity
         i = index
-        if i < len(prediction):
-            while (
-                i < len(prediction) - 1
-                and prediction[i + 1] != -100
-                and (
-                    ID2LABEL[prediction[i + 1]] == f"I-{label}" or ID2LABEL[prediction[i + 1]] == f"B-{label}"
-                )
+        while (
+            i < len(prediction) - 1
+            and prediction[i + 1] != -100
+            and (
+                ID2LABEL[prediction[i + 1]] == f"I-{label}" 
+                or ID2LABEL[prediction[i + 1]] == f"B-{label}"
+            )
+        ):
+            # Sometimes a word is split into subtokens
+            # In this case, the subtokens also start with a B tag
+            # even though it is part of the same entity
+            # Subtokens can be recognized, because they start with "#"
+            if (
+                ID2LABEL[prediction[i + 1]] == f"B-{label}"
+                and tokenizer.convert_ids_to_tokens(token[i + 1])[0] != "#"
             ):
-                # print(ID2LABEL[prediction[i + 1]], tokenizer.convert_ids_to_tokens(token[i + 1]))
-                if ID2LABEL[prediction[i + 1]] == f"B-{label}":
-                    if tokenizer.convert_ids_to_tokens(token[i + 1])[0] != "#":
-                        break
-                entity += " " + tokenizer.convert_ids_to_tokens(token[i + 1])
-                if i > len(prediction) - 1:
-                    break
-                i += 1
-        # print("entity: ", entity)
+                break
+            # Add token to entity
+            entity += " " + tokenizer.convert_ids_to_tokens(token[i + 1])
+            i += 1
+            
         return entity

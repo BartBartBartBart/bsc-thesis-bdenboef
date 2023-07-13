@@ -1,3 +1,5 @@
+# Configuration for the hyperparameter sweep of the NER model.
+
 program: train.py
 method: bayes
 project: ner-bert
@@ -17,21 +19,3 @@ parameters:
     values: [0, 0.2, 0.4, 0.6, 0.8, 1]
   warmup_steps:
     values: [0, 5, 10, 15] 
-  
-# method?
-# good values for params?
-# good metric to evaluate?
-# do i need to return a metric for logging? im not doing inference yet
-
-# per_device_train_batch_size=per_device_train_batch_size, 
-# per_device_eval_batch_size=per_device_eval_batch_size, 
-# num_train_epochs=num_train_epochs, 
-# weight_decay=weight_decay, 
-# warmup_steps = warmup_steps,
-# load_best_model_at_end=load_best_model_at_end,
-# logging_steps=logging_steps,
-# TRAIN_BATCH_SIZE = 32
-# EVAL_BATCH_SIZE = 8
-# PREDICT_BATCH_SIZE = 8
-# LEARNING_RATE = 2e-5
-# NUM_TRAIN_EPOCHS = 3.0

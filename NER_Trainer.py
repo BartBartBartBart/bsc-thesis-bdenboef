@@ -5,8 +5,8 @@ from transformers import Trainer
 from torch import nn
 import torch
 import numpy as np
-from constants import ID2LABEL
 
+from constants import ID2LABEL
 from data_generator import data_generator
 
 
@@ -52,9 +52,13 @@ class NER_Trainer(Trainer):
 
 
 def count_labels():
+    """
+    Counts the occurances of each class in the training data.
+    This is used to perform weight normalization.
+    """
     generator = data_generator()
 
-    dataset = generator.generate_ner_dataset()
+    dataset = generator.generate_dataset()
 
     label_counts = {
         "O": 0,
@@ -78,6 +82,10 @@ def count_labels():
 
 
 def weight_normalization(n_classes, occurences_per_class):
+    """
+    Calculates weights per class based on the occurances.
+    Returns a tensor of these weights.
+    """
     weights_per_class = 1.0 / np.array(np.power(occurences_per_class, 1))
     weights_per_class = weights_per_class / np.sum(weights_per_class) * n_classes
     return torch.tensor(weights_per_class)

@@ -3,9 +3,6 @@
 import datasets
 from datasets import load_dataset
 from transformers import BertTokenizerFast
-import pandas as pd
-import keras
-import numpy as np
 
 from constants import ID2LABEL
 from utils import (
@@ -19,10 +16,18 @@ from utils import (
 
 
 class data_generator:
+    """
+    Wrapper class for tokenizing and preprocessing the data.
+    Contains tokenizer. 
+    """
     def __init__(self):
         self.tokenizer = load_tokenizer()
 
-    def generate_ner_dataset(self, remove_labels=False):
+    def generate_dataset(self, remove_labels=False):
+        """
+        Generation and preprocessing of the dataset. 
+        Returns tokenized dataset in appropriate format.
+        """
         dataset = load_data()
 
         # Perform preprocessing
@@ -67,6 +72,9 @@ class data_generator:
         return dataset
 
     def tokenize_and_align_labels(self, texts, label_all_tokens=True):
+        """
+        Tokenizes the data, while making sure that subtokens are aligned with their label.
+        """
         tokenized_inputs = self.tokenizer(
             texts["tokens"], truncation=True, is_split_into_words=True, padding="max_length"
         )
@@ -110,67 +118,39 @@ class data_generator:
         }
 
     def tokenize_relations(self, dataset):
+        """
+        Tokenizes the relations (true labels).
+        Returns list of tuples (head span, child span, label).
+        """
         all_relations = []
-        # all_labels = []
+
+        # Loop through texts
         for relations in dataset["relations"]:
             rel_in_text = []
-            # label_in_text = []
+
+            # Tokenize the head and child span and form list of tuples 
             for relation in relations:
                 head, child, label = relation
+                # Tokenize head
                 head = self.tokenizer.convert_ids_to_tokens(
                     self.tokenizer(head, truncation=False)["input_ids"]
                 )
+                # Filter out irrelevant tokens
                 head = filter(lambda token: token != "[CLS]" and token != "[SEP]", head)
-                # head = [token for token in head if token ]
                 head = " ".join(head)
+                # Tokenize child
                 child = self.tokenizer.convert_ids_to_tokens(
                     self.tokenizer(child, truncation=False)["input_ids"]
                 )
+                # Filter out irrelevant spans
                 child = filter(lambda token: token != "[CLS]" and token != "[SEP]", child)
                 child = " ".join(child)
-                # label_in_text.append(label)
+
+                # Append tuple to list
                 rel_in_text.append((head, child, label))
             all_relations.append(rel_in_text)
-            # all_labels.append(label_in_text)
 
         return {"relations": all_relations}
-        # return {"relations": all_relations, "rel_labels": all_labels}
-
-    def generate_re_dataset(self):
-        # dataset = self.generate_ner_dataset(remove_labels=False)
-
-        dataset = load_data()
-        dataset = remove_rejected_texts(dataset)
-        # Add labels
-        dataset = dataset.map(add_token_labels, batched=True)
-        dataset = dataset.map(add_span_ner_labels, batched=True)
-
-        # Align labels
-        dataset = dataset.map(align_labels, batched=True)
-
-        # Remove some columns
-        dataset = dataset.remove_columns(
-            [
-                "id",
-                "text",
-                "_input_hash",
-                "_task_hash",
-                "_is_binary",
-                "spans",
-                "_view_id",
-                "answer",
-                "_timestamp",
-                "old_tokens",
-            ]
-        )
-        dataset = dataset.map(self.tokenize_and_align_labels, batched=True)
-        dataset = dataset.map(list_relations, batched=True)
-        dataset = dataset.map(self.tokenize_relations, batched=True)
-
-        return dataset
-
-    def generate_baseline_dataset(self):
-        dataset = pd.read_json("./dataset/small_test_set.json", lines=True)
 
     def save_dataset(self, dataset, filename):
         dataset.to_json(filename)
@@ -188,8 +168,10 @@ def load_tokenizer():
 
 
 def list_labels(tokens, labels, true_labels):
-    print(len(tokens))
-    print(len(labels))
+    """ 
+    List tokens with their predicted and true label.
+    For debugging purposes.
+    """
     tokenizer = load_tokenizer()
     for text, label, truth in zip(tokens, labels, true_labels):
         if label > -100:
