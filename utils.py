@@ -163,25 +163,25 @@ def cv_split(dataset, fold):
     TODO: make this dynamic.
     """
     if fold == 0:
-        # train_split = [0, 1, 2, 3, 4, 5]
-        # eval_split = [6, 7, 8]
-        train_split = [0, 1, 2, 3, 4, 5, 6]
-        eval_split = [7, 8]
+        train_split = [0, 1, 2, 3, 4, 5]
+        eval_split = [6, 7, 8]
+        # train_split = [0, 1, 2, 3, 4, 5, 6]
+        # eval_split = [7, 8]
     elif fold == 1:
-        # train_split = [7, 8, 0, 1, 2, 3]
-        # eval_split = [4, 5, 6]
-        train_split = [7, 8, 0, 1, 2, 3, 4]
-        eval_split = [5, 6]
+        train_split = [7, 8, 0, 1, 2, 3]
+        eval_split = [4, 5, 6]
+        # train_split = [7, 8, 0, 1, 2, 3, 4]
+        # eval_split = [5, 6]
     elif fold == 2:
-        # train_split = [5, 6, 7, 8, 0, 1]
-        # eval_split = [2, 3, 4]
-        train_split = [5, 6, 7, 8, 0, 1, 2]
-        eval_split = [3, 4]
+        train_split = [5, 6, 7, 8, 0, 1]
+        eval_split = [2, 3, 4]
+        # train_split = [5, 6, 7, 8, 0, 1, 2]
+        # eval_split = [3, 4]
     elif fold == 3:
-        # train_split = [3, 4, 5, 6, 7, 8]
-        # eval_split = [0, 1, 2]
-        train_split = [3, 4, 5, 6, 7, 8, 0]
-        eval_split = [1, 2]
+        train_split = [3, 4, 5, 6, 7, 8]
+        eval_split = [0, 1, 2]
+        # train_split = [3, 4, 5, 6, 7, 8, 0]
+        # eval_split = [1, 2]
 
     # create new train dataset
     train_set = dataset["train"].select((i for i in range(len(dataset["train"])) if i in train_split))
@@ -221,6 +221,8 @@ def list_relations(dataset):
                     child_entity += token
             label = relation["label"]
 
+            if label == "ASSOCIATION*" or label == "COMPOSITION" or label == "AGGREGATION":
+                print(head_entity, child_entity, label)
             # For debugging purposes
             # print(f"({head_entity},{child_entity})--> REL: {label}")
 

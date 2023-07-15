@@ -18,14 +18,15 @@ from utils import (
 class data_generator:
     """
     Wrapper class for tokenizing and preprocessing the data.
-    Contains tokenizer. 
+    Contains tokenizer.
     """
+
     def __init__(self):
         self.tokenizer = load_tokenizer()
 
     def generate_dataset(self, remove_labels=False):
         """
-        Generation and preprocessing of the dataset. 
+        Generation and preprocessing of the dataset.
         Returns tokenized dataset in appropriate format.
         """
         dataset = load_data()
@@ -66,7 +67,7 @@ class data_generator:
             # Remove some columns
             dataset = dataset.remove_columns(["tokens"])
 
-        dataset = dataset.map(list_relations, batched=True)
+        dataset = dataset.map(list_relations, batched=True, load_from_cache_file=False)
         dataset = dataset.map(self.tokenize_relations, batched=True)
 
         return dataset
@@ -128,7 +129,7 @@ class data_generator:
         for relations in dataset["relations"]:
             rel_in_text = []
 
-            # Tokenize the head and child span and form list of tuples 
+            # Tokenize the head and child span and form list of tuples
             for relation in relations:
                 head, child, label = relation
                 # Tokenize head
@@ -168,7 +169,7 @@ def load_tokenizer():
 
 
 def list_labels(tokens, labels, true_labels):
-    """ 
+    """
     List tokens with their predicted and true label.
     For debugging purposes.
     """

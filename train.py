@@ -78,83 +78,83 @@ def train_ner_model(
     re_scores = []
     avg_f1 = 0
 
-    precomputed_preds = parse_precomputed_preds(PREDICTIONS)
+    # precomputed_preds = parse_precomputed_preds(PREDICTIONS)
 
     # for i in [0]:
     for i in [0, 1, 2, 3]:
         print(f"Fold {i}")
 
-        # ner_model = NER_Model(
-        #     learning_rate,
-        #     per_device_train_batch_size,
-        #     per_device_eval_batch_size,
-        #     num_train_epochs,
-        #     weight_decay,
-        #     warmup_steps,
-        #     load_best_model_at_end,
-        #     logging_steps,
-        # )
+        ner_model = NER_Model(
+            learning_rate,
+            per_device_train_batch_size,
+            per_device_eval_batch_size,
+            num_train_epochs,
+            weight_decay,
+            warmup_steps,
+            load_best_model_at_end,
+            logging_steps,
+        )
 
-        # # Cross-validation split
+        # # # Cross-validation split
         train_set, eval_set = cv_split(dataset=dataset, fold=i)
 
-        # trainer = NER_Trainer(
-        #     model=ner_model.model,
-        #     args=ner_model.args,
-        #     train_dataset=train_set,
-        #     eval_dataset=eval_set,
-        #     data_collator=ner_model.data_collator,
-        #     tokenizer=ner_model.tokenizer,
-        #     compute_metrics=compute_metrics,
-        # )
-        # # NAMED ENTITY RECOGNITION
+        trainer = NER_Trainer(
+            model=ner_model.model,
+            args=ner_model.args,
+            train_dataset=train_set,
+            eval_dataset=eval_set,
+            data_collator=ner_model.data_collator,
+            tokenizer=ner_model.tokenizer,
+            compute_metrics=compute_metrics,
+        )
+        # NAMED ENTITY RECOGNITION
 
-        # # train model on train set and evaluate with eval
-        # trainer.train()
+        # train model on train set and evaluate with eval
+        trainer.train()
 
-        # # evaluate predictions on test set
-        # ner_predictions, label_ids, ner_metrics = trainer.predict(test_dataset=eval_set)
+        # evaluate predictions on test set
+        ner_predictions, label_ids, ner_metrics = trainer.predict(test_dataset=eval_set)
 
-        # # Transform probabilities into predictions
-        # ner_predictions = np.argmax(ner_predictions, axis=2)
+        # Transform probabilities into predictions
+        ner_predictions = np.argmax(ner_predictions, axis=2)
 
-        # # We remove all the values where the label is -100
-        # predictions = [
-        #     [eval_preds for (eval_preds, l) in zip(prediction, label) if l != -100]
-        #     for prediction, label in zip(ner_predictions, label_ids)
-        # ]
-        # true_labels = [
-        #     [l for (eval_preds, l) in zip(prediction, label) if l != -100]
-        #     for prediction, label in zip(ner_predictions, label_ids)
-        # ]
+        # We remove all the values where the label is -100
+        predictions = [
+            [eval_preds for (eval_preds, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(ner_predictions, label_ids)
+        ]
+        true_labels = [
+            [l for (eval_preds, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(ner_predictions, label_ids)
+        ]
 
-        # pred = []
-        # truth = []
+        pred = []
+        truth = []
 
-        # for labels, preds in zip(true_labels, predictions):
-        #     pred += preds
-        #     truth += labels
-        #     # results_per_class = classification_report(labels, preds)
-        #     # ner_reports.append(results_per_class)
+        for labels, preds in zip(true_labels, predictions):
+            pred += preds
+            truth += labels
+            # results_per_class = classification_report(labels, preds)
+            # ner_reports.append(results_per_class)
 
-        # results_per_class = classification_report(truth, pred, labels=np.unique(truth))
-        # ner_reports.append(results_per_class)
+        results_per_class = classification_report(truth, pred, labels=np.unique(truth))
+        ner_reports.append(results_per_class)
 
-        # ner_scores.append(ner_metrics)
-        # avg_f1 += ner_metrics["test_f1"]
-        list_labels(eval_set[0]["input_ids"], precomputed_preds[i][0], eval_set["labels"][0])
-        list_labels(eval_set[1]["input_ids"], precomputed_preds[i][1], eval_set["labels"][1])
+        ner_scores.append(ner_metrics)
+        avg_f1 += ner_metrics["test_f1"]
+        # list_labels(eval_set[0]["input_ids"], precomputed_preds[i][0], eval_set["labels"][0])
+        # list_labels(eval_set[1]["input_ids"], precomputed_preds[i][1], eval_set["labels"][1])
         # list_labels(eval_set[0]["input_ids"], ner_predictions[0], eval_set["labels"][0])
         # list_labels(eval_set[1]["input_ids"], ner_predictions[1], eval_set["labels"][1])
         # list_labels(eval_set[2]["input_ids"], ner_predictions[2], eval_set["labels"][2])
 
         # # RELATION EXTRACTION
         re = rel_extractor()
-        # predicted_relations = re.extract_relations(eval_set["input_ids"], ner_predictions)
+        predicted_relations = re.extract_relations(eval_set["input_ids"], ner_predictions)
         # predicted_relations = re.extract_relations(eval_set["input_ids"], eval_set["labels"])
-        predicted_relations = re.extract_relations(IDS[i], precomputed_preds[i])
+        # predicted_relations = re.extract_relations(IDS[i], precomputed_preds[i])
         scores_per_class = calculate_score(eval_set["relations"], predicted_relations)
-        # print(scores_per_class)
+        # # print(scores_per_class)
         re_scores.append(scores_per_class)
 
     return ner_scores, ner_reports, re_scores, avg_f1 / 4
