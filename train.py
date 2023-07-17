@@ -95,7 +95,7 @@ def train_ner_model(
             logging_steps,
         )
 
-        # # # Cross-validation split
+        # Cross-validation split
         train_set, eval_set = cv_split(dataset=dataset, fold=i)
 
         trainer = NER_Trainer(
