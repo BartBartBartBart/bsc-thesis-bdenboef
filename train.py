@@ -1,4 +1,5 @@
 # Main file for training NER Bert
+# Can be run with best parameters using run_model.sh
 
 import wandb
 import argparse
@@ -8,18 +9,9 @@ from sklearn.metrics import classification_report
 
 from model import NER_Model
 from NER_Trainer import NER_Trainer
-from data_generator import data_generator, list_labels
+from data_generator import data_generator
 from rel_extractor import rel_extractor
-from utils import (
-    cv_split,
-    compute_metrics,
-    set_seeds,
-    calculate_score,
-    print_reports,
-    count_relations,
-    parse_precomputed_preds,
-)
-from constants import LABEL_LIST, ID2LABEL, PREDICTIONS, IDS
+from utils import cv_split, compute_metrics, set_seeds, calculate_score, parse_precomputed_preds
 
 # Parse arguments from command line
 parser = argparse.ArgumentParser(description="Add hyperparameters.")
@@ -80,7 +72,6 @@ def train_ner_model(
 
     # precomputed_preds = parse_precomputed_preds(PREDICTIONS)
 
-    # for i in [0]:
     for i in [0, 1, 2, 3]:
         print(f"Fold {i}")
 
@@ -134,31 +125,24 @@ def train_ner_model(
         for labels, preds in zip(true_labels, predictions):
             pred += preds
             truth += labels
-            # results_per_class = classification_report(labels, preds)
-            # ner_reports.append(results_per_class)
 
         results_per_class = classification_report(truth, pred, labels=np.unique(truth))
         ner_reports.append(results_per_class)
 
         ner_scores.append(ner_metrics)
         avg_f1 += ner_metrics["test_f1"]
-        # list_labels(eval_set[0]["input_ids"], precomputed_preds[i][0], eval_set["labels"][0])
-        # list_labels(eval_set[1]["input_ids"], precomputed_preds[i][1], eval_set["labels"][1])
-        # list_labels(eval_set[0]["input_ids"], ner_predictions[0], eval_set["labels"][0])
-        # list_labels(eval_set[1]["input_ids"], ner_predictions[1], eval_set["labels"][1])
-        # list_labels(eval_set[2]["input_ids"], ner_predictions[2], eval_set["labels"][2])
 
         # # RELATION EXTRACTION
         re = rel_extractor()
+
+        # Apply heuristics
         predicted_relations = re.extract_relations(eval_set["input_ids"], ner_predictions)
-        # predicted_relations = re.extract_relations(eval_set["input_ids"], eval_set["labels"])
-        # predicted_relations = re.extract_relations(IDS[i], precomputed_preds[i])
+
+        # Calculate metrics
         scores_per_class = calculate_score(eval_set["relations"], predicted_relations)
-        # # print(scores_per_class)
         re_scores.append(scores_per_class)
 
     return ner_scores, ner_reports, re_scores, avg_f1 / 4
-    # return 1,1,1
 
 
 if __name__ == "__main__":
@@ -178,8 +162,7 @@ if __name__ == "__main__":
     #         logging_steps=10
     #     )
 
-    #     # Normal Run
-
+    # Normal Run
     args = parser.parse_args()
 
     start = time.time()
@@ -200,33 +183,11 @@ if __name__ == "__main__":
     print(f"Average F1 score: {avg_f1}")
     print(f"The run took {end-start} seconds.")
 
-    # with open("output.txt", "a") as f:
-    #     f.write("\nNER results per fold:\n")
-    #     for report in ner_reports:
-    #         f.write("\n")
-    #         f.write(report)
-    #     f.write("\nRE results per fold:\n")
-    #     for re_score in re_scores:
-    #         f.write("\n")
-    #         f.write(str(re_score))
+    print("NER results per fold:")
+    print(ner_scores)
+    for report in ner_reports:
+        print(report)
 
-    # print("NER results per fold:")
-    # # print(ner_scores)
-    # for report in ner_reports:
-    #     print(report)
-    # # print_reports(ner_reports)
     print("RE results per fold:")
-    # print(re_scores)
     for re_score in re_scores:
         print(re_score)
-
-    # print(f"Took {end-start} seconds.")
-
-    # generator = data_generator()had
-    # dataset = generator.generate_re_dataset()
-    # re = rel_extractor()
-    # train_set, eval_set = cv_split(dataset=dataset, fold=3)
-    # print(eval_set["relations"])
-    # predicted_relations = re.extract_relations(eval_set["input_ids"], eval_set["labels"])
-    # scores_per_class = calculate_score(eval_set["relations"], predicted_relations)
-    # print(f"TOTAL: {correct} correct, {wrong} wrong")
